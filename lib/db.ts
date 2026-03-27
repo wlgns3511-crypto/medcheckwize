@@ -194,3 +194,25 @@ export function getComparisonLinksForState(abbr: string, limit = 5): { slug: str
     other: r.state_a === abbr ? r.state_b : r.state_a,
   }));
 }
+
+// ── Procedure Comparison queries ─────────────────────────────────────────────
+
+export interface ProcedureComparison {
+  id: number;
+  slug: string;
+  proc_a_slug: string;
+  proc_b_slug: string;
+}
+
+export function getAllProcedureComparisonSlugs(limit = 50000): ProcedureComparison[] {
+  return getDb().prepare('SELECT * FROM procedure_comparisons ORDER BY id LIMIT ?').all(limit) as ProcedureComparison[];
+}
+
+export function getProcedureComparisonBySlug(slug: string): { a: Procedure; b: Procedure } | undefined {
+  const row = getDb().prepare('SELECT proc_a_slug, proc_b_slug FROM procedure_comparisons WHERE slug = ?').get(slug) as { proc_a_slug: string; proc_b_slug: string } | undefined;
+  if (!row) return undefined;
+  const a = getProcedureBySlug(row.proc_a_slug);
+  const b = getProcedureBySlug(row.proc_b_slug);
+  if (!a || !b) return undefined;
+  return { a, b };
+}
