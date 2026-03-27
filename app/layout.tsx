@@ -77,6 +77,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 <a href="https://foodpeek.com" className="hover:text-blue-600">Food Data</a>
                 <a href="https://shopthreads.com" className="hover:text-blue-600">Shop Threads</a>
                 <a href="https://goldenyearspeek.com" className="hover:text-blue-600">Retirement</a>
+              
+                <a href="https://sunpowerpeek.com" className="hover:text-blue-600">Solar Power</a>
               </div>
             </div>
             <p className="mt-1">&copy; {new Date().getFullYear()} {SITE_NAME}. All rights reserved.</p>
