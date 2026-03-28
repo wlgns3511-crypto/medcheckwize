@@ -44,6 +44,22 @@ export default async function StatePage({ params }: { params: Promise<{ slug: st
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Dataset",
+            "name": `Medicare & Medicaid Costs in ${state.state} (${year})`,
+            "description": `Medicare spending, procedure costs, premiums, and coverage data for ${state.state}. Per-capita spending: ${formatCurrency(state.avg_medicare_spending_per_capita)}.`,
+            "url": `https://medcheckwize.com/state/${slug}/`,
+            "license": "https://creativecommons.org/publicdomain/zero/1.0/",
+            "creator": { "@type": "Organization", "name": "DataPeek Facts", "url": "https://datapeekfacts.com" },
+            "temporalCoverage": "2024/2026",
+            "distribution": { "@type": "DataDownload", "encodingFormat": "text/html" }
+          })
+        }}
+      />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema([
         { name: 'Home', url: '/' },
         { name: state.state, url: `/state/${slug}/` },
@@ -154,6 +170,15 @@ export default async function StatePage({ params }: { params: Promise<{ slug: st
           </div>
         </section>
       )}
+
+      {/* Related Data Resources */}
+      <section className="mt-8 p-4 bg-slate-50 rounded-lg">
+        <h3 className="text-sm font-semibold text-slate-500 mb-2">Related Data Resources</h3>
+        <div className="flex flex-wrap gap-3 text-sm">
+          <a href="https://eldercarepeek.com" className="text-teal-600 hover:underline">ElderCarePeek - Senior care costs &rarr;</a>
+          <a href="https://costbycity.com" className="text-teal-600 hover:underline">CostByCity - Cost of living &rarr;</a>
+        </div>
+      </section>
 
       <FAQ items={faqs} />
     </>
