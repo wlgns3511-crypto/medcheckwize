@@ -6,6 +6,7 @@ import { breadcrumbSchema, faqSchema, generateStateFAQs } from '@/lib/schema';
 import { Breadcrumb } from '@/components/Breadcrumb';
 import { AdSlot } from '@/components/AdSlot';
 import { FAQ } from '@/components/FAQ';
+import { CiteButton } from '@/components/CiteButton';
 
 export const dynamicParams = true;
 export const revalidate = 86400;
@@ -170,6 +171,10 @@ export default async function StatePage({ params }: { params: Promise<{ slug: st
           </div>
         </section>
       )}
+
+      <div className="flex items-center gap-4 mt-4">
+        <CiteButton title={`Medicare & Medicaid Costs in ${state.state}`} url={`https://medcheckwize.com/state/${slug}/`} source="MedCheckWize (CMS.gov)" />
+      </div>
 
       {/* Related Data Resources */}
       <section className="mt-8 p-4 bg-slate-50 rounded-lg">
