@@ -6,6 +6,7 @@ import { AdSlot } from '@/components/AdSlot';
 import { Breadcrumb } from '@/components/Breadcrumb';
 
 export const dynamicParams = true;
+export const revalidate = 86400;
 
 export async function generateStaticParams() {
   return getAllProcedureComparisonSlugs(300).map((c) => ({ slug: c.slug }));

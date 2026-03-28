@@ -8,6 +8,7 @@ import { AdSlot } from '@/components/AdSlot';
 import { FAQ } from '@/components/FAQ';
 
 export const dynamicParams = true;
+export const revalidate = 86400;
 
 export async function generateStaticParams() {
   // Pre-render a subset for ISR
