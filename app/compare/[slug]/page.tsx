@@ -7,6 +7,7 @@ import { Breadcrumb } from '@/components/Breadcrumb';
 import { StateComparisonTable } from '@/components/StateComparisonTable';
 import { AdSlot } from '@/components/AdSlot';
 import { FAQ } from '@/components/FAQ';
+import { ComparisonBar } from '@/components/ComparisonBar';
 
 export const dynamicParams = true;
 export const revalidate = 86400;
@@ -70,6 +71,40 @@ export default async function ComparePage({ params }: { params: Promise<{ slug: 
       <StateComparisonTable a={a} b={b} />
 
       <AdSlot id="compare-mid" />
+
+      {/* Visual Comparison Bars */}
+      <section className="mt-8 mb-8">
+        <h2 className="text-xl font-bold mb-3">Visual Cost Comparison</h2>
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px", margin: "24px 0" }}>
+          {a.avg_medicare_spending_per_capita != null && b.avg_medicare_spending_per_capita != null && (
+            <div>
+              <h3 className="text-sm font-medium text-slate-600 mb-2">Medicare Spending per Capita</h3>
+              <ComparisonBar
+                bars={[{ label: a.state, value: a.avg_medicare_spending_per_capita }, { label: b.state, value: b.avg_medicare_spending_per_capita }]}
+                format={(v) => "$" + v.toLocaleString()}
+              />
+            </div>
+          )}
+          {a.part_b_premium != null && b.part_b_premium != null && (
+            <div>
+              <h3 className="text-sm font-medium text-slate-600 mb-2">Part B Monthly Premium</h3>
+              <ComparisonBar
+                bars={[{ label: a.state, value: a.part_b_premium }, { label: b.state, value: b.part_b_premium }]}
+                format={(v) => "$" + v.toLocaleString()}
+              />
+            </div>
+          )}
+          {a.medigap_avg_premium != null && b.medigap_avg_premium != null && (
+            <div>
+              <h3 className="text-sm font-medium text-slate-600 mb-2">Average Medigap Premium</h3>
+              <ComparisonBar
+                bars={[{ label: a.state, value: a.medigap_avg_premium }, { label: b.state, value: b.medigap_avg_premium }]}
+                format={(v) => "$" + v.toLocaleString()}
+              />
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* Procedure Cost Comparison */}
       {procComparison.length > 0 && (
