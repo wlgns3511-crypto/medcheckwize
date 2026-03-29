@@ -1,0 +1,27 @@
+{
+  "common": {
+    "home": "Home",
+    "states": "States",
+    "procedures": "Procedures",
+    "calculator": "Calculator",
+    "compare": "Compare",
+    "about": "About",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "contact": "Contact",
+    "langSwitch": "ES",
+    "langSwitchPrefix": "/es"
+  },
+  "state": {
+    "medicareMedicaid": "Medicare & Medicaid in {state}",
+    "spendingPerCapita": "Spending/Capita",
+    "medicareEnrollees": "Medicare Enrollees",
+    "medicaidEnrollees": "Medicaid Enrollees",
+    "uninsuredRate": "Uninsured Rate",
+    "premiums": "Medicare Premiums",
+    "procedureCosts": "Procedure Costs",
+    "medicalCosts": "Medical Costs",
+    "premium": "Premium",
+    "perPersonSpending": "Per Person Spending"
+  }
+}

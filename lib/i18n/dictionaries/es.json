@@ -1,0 +1,27 @@
+{
+  "common": {
+    "home": "Inicio",
+    "states": "Estados",
+    "procedures": "Procedimientos",
+    "calculator": "Calculadora",
+    "compare": "Comparar",
+    "about": "Acerca de",
+    "privacy": "Privacidad",
+    "terms": "Términos",
+    "contact": "Contacto",
+    "langSwitch": "EN",
+    "langSwitchPrefix": ""
+  },
+  "state": {
+    "medicareMedicaid": "Medicare y Medicaid en {state}",
+    "spendingPerCapita": "Gasto por Persona",
+    "medicareEnrollees": "Beneficiarios de Medicare",
+    "medicaidEnrollees": "Beneficiarios de Medicaid",
+    "uninsuredRate": "Tasa de No Asegurados",
+    "premiums": "Primas de Medicare",
+    "procedureCosts": "Costos de Procedimientos",
+    "medicalCosts": "Costos Médicos",
+    "premium": "Prima",
+    "perPersonSpending": "Gasto por Persona"
+  }
+}
