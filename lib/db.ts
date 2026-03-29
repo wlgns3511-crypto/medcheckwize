@@ -177,9 +177,17 @@ export function getAllComparisonSlugs(): { slug: string }[] {
 
 export function getComparisonBySlug(slug: string): { a: State; b: State } | undefined {
   const row = getDb().prepare('SELECT state_a, state_b FROM comparisons WHERE slug = ?').get(slug) as { state_a: string; state_b: string } | undefined;
-  if (!row) return undefined;
-  const a = getStateByAbbr(row.state_a);
-  const b = getStateByAbbr(row.state_b);
+  if (row) {
+    const a = getStateByAbbr(row.state_a);
+    const b = getStateByAbbr(row.state_b);
+    if (a && b) return { a, b };
+  }
+
+  // Fallback: parse slug and look up each state dynamically
+  const parts = slug.split('-vs-');
+  if (parts.length !== 2) return undefined;
+  const a = getStateBySlug(parts[0]);
+  const b = getStateBySlug(parts[1]);
   if (!a || !b) return undefined;
   return { a, b };
 }
@@ -210,9 +218,17 @@ export function getAllProcedureComparisonSlugs(limit = 50000): ProcedureComparis
 
 export function getProcedureComparisonBySlug(slug: string): { a: Procedure; b: Procedure } | undefined {
   const row = getDb().prepare('SELECT proc_a_slug, proc_b_slug FROM procedure_comparisons WHERE slug = ?').get(slug) as { proc_a_slug: string; proc_b_slug: string } | undefined;
-  if (!row) return undefined;
-  const a = getProcedureBySlug(row.proc_a_slug);
-  const b = getProcedureBySlug(row.proc_b_slug);
+  if (row) {
+    const a = getProcedureBySlug(row.proc_a_slug);
+    const b = getProcedureBySlug(row.proc_b_slug);
+    if (a && b) return { a, b };
+  }
+
+  // Fallback: parse slug and look up each procedure dynamically
+  const parts = slug.split('-vs-');
+  if (parts.length !== 2) return undefined;
+  const a = getProcedureBySlug(parts[0]);
+  const b = getProcedureBySlug(parts[1]);
   if (!a || !b) return undefined;
   return { a, b };
 }
