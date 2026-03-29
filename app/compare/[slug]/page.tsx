@@ -8,6 +8,7 @@ import { StateComparisonTable } from '@/components/StateComparisonTable';
 import { AdSlot } from '@/components/AdSlot';
 import { FAQ } from '@/components/FAQ';
 import { ComparisonBar } from '@/components/ComparisonBar';
+import { FreshnessTag } from '@/components/FreshnessTag';
 
 export const dynamicParams = true;
 export const revalidate = 86400;
@@ -152,6 +153,8 @@ export default async function ComparePage({ params }: { params: Promise<{ slug: 
       </div>
 
       <FAQ items={faqs} />
+
+      <FreshnessTag source="CMS Medicare Data" />
     </>
   );
 }
