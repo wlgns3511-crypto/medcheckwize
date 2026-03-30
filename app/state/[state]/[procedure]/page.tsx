@@ -6,6 +6,10 @@ import { breadcrumbSchema, faqSchema, generateStateProcedureFAQs } from '@/lib/s
 import { Breadcrumb } from '@/components/Breadcrumb';
 import { AdSlot } from '@/components/AdSlot';
 import { FAQ } from '@/components/FAQ';
+import { EditorNote } from '@/components/EditorNote';
+import { DidYouKnow } from '@/components/DidYouKnow';
+import { DataSourceBadge } from '@/components/DataSourceBadge';
+import { CrossSiteLinks } from '@/components/CrossSiteLinks';
 
 export const dynamicParams = true;
 export const revalidate = 86400;
@@ -46,12 +50,20 @@ export default async function StateProcedurePage({ params }: { params: Promise<{
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema([
-        { name: 'Home', url: '/' },
-        { name: state.state, url: `/state/${state.slug}/` },
-        { name: procedure.name, url: `/state/${stateSlug}/${procSlug}/` },
-      ])) }} />
-      {faqs.length > 0 && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema(faqs)) }} />}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+        ...breadcrumbSchema([
+          { name: 'Home', url: '/' },
+          { name: state.state, url: `/state/${state.slug}/` },
+          { name: procedure.name, url: `/state/${stateSlug}/${procSlug}/` },
+        ]),
+        dateModified: "2026-03-31",
+        author: { "@type": "Organization", name: "DataPeek" },
+      }) }} />
+      {faqs.length > 0 && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+        ...faqSchema(faqs),
+        dateModified: "2026-03-31",
+        author: { "@type": "Organization", name: "DataPeek" },
+      }) }} />}
 
       <Breadcrumb items={[
         { label: 'Home', href: '/' },
@@ -61,6 +73,8 @@ export default async function StateProcedurePage({ params }: { params: Promise<{
 
       <h1 className="text-3xl font-bold mb-2">{procedure.name} Cost in {state.state} ({year})</h1>
       <p className="text-slate-600 mb-6">{procedure.description}</p>
+
+      <EditorNote note={`In ${state.state}, ${procedure.name} costs ${diff > 0 ? `${diffPct}% above` : `${Math.abs(Number(diffPct))}% below`} the national average. Medicare covers ${formatCurrency(stateProcedure.medicare_pays)}, leaving patients responsible for ${formatCurrency(stateProcedure.patient_pays)} out-of-pocket.`} />
 
       {/* Cost Breakdown */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
@@ -128,6 +142,8 @@ export default async function StateProcedurePage({ params }: { params: Promise<{
         </div>
       </section>
 
+      <DidYouKnow fact={`The average American spends over $12,500 per year on healthcare. In ${state.state}, ${procedure.name} ranks #${rank} out of 50 states by cost, with patients paying ${formatCurrency(stateProcedure.patient_pays)} after Medicare coverage.`} />
+
       {/* Links */}
       <div className="flex gap-4 mt-6">
         <a href={`/state/${state.slug}/`} className="flex-1 text-center py-3 bg-teal-50 border border-teal-200 rounded-lg text-teal-700 font-medium hover:bg-teal-100">
@@ -139,6 +155,13 @@ export default async function StateProcedurePage({ params }: { params: Promise<{
       </div>
 
       <FAQ items={faqs} />
+
+      <DataSourceBadge sources={[
+        { name: "CMS", url: "https://www.cms.gov" },
+        { name: "Healthcare.gov", url: "https://www.healthcare.gov" },
+      ]} />
+
+      <CrossSiteLinks current="MedCheckWize" />
     </>
   );
 }
