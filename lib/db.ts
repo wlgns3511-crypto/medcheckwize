@@ -169,6 +169,15 @@ export function getStateProcedureDetail(stateSlug: string, procedureSlug: string
   return { state, procedure, stateProcedure, allStates };
 }
 
+// ── Search queries ───────────────────────────────────────────────────────────
+
+export function searchProcedures(query: string, limit = 20): Procedure[] {
+  const q = `%${query}%`;
+  return getDb().prepare(
+    'SELECT * FROM procedures WHERE name LIKE ? OR description LIKE ? OR category LIKE ? ORDER BY name LIMIT ?'
+  ).all(q, q, q, limit) as Procedure[];
+}
+
 // ── Comparison queries ───────────────────────────────────────────────────────
 
 export function getAllComparisonSlugs(): { slug: string }[] {

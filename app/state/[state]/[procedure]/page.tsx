@@ -12,7 +12,7 @@ export const revalidate = 86400;
 
 export async function generateStaticParams() {
   // Pre-render a subset for ISR
-  return getAllStateProcedurePairs().slice(0, 500).map(sp => ({
+  return getAllStateProcedurePairs().slice(0, 50).map(sp => ({
     state: sp.state_slug,
     procedure: sp.procedure_slug,
   }));

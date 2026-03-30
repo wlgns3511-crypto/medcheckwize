@@ -2,9 +2,13 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getAllPosts, getPostBySlug } from "@/lib/blog";
 import { AdSlot } from "@/components/AdSlot";
+import { AuthorBox } from "@/components/AuthorBox";
+
+export const dynamicParams = true;
+export const revalidate = 86400;
 
 export function generateStaticParams() {
-  return getAllPosts().map((p) => ({ slug: p.slug }));
+  return getAllPosts().slice(0, 5).map((p) => ({ slug: p.slug }));
 }
 
 export async function generateMetadata({
@@ -67,9 +71,15 @@ export default async function BlogPostPage({
             datePublished: post.publishedAt,
             dateModified: post.updatedAt ?? post.publishedAt,
             author: {
-              "@type": "Organization",
-              name: "MedCheckWize",
-              url: "https://medcheckwize.com",
+              "@type": "Person",
+              name: "MedCheckWize Health Team",
+              description: "Healthcare data and drug safety research",
+              url: "https://medcheckwize.com/about/",
+              worksFor: {
+                "@type": "Organization",
+                name: "MedCheckWize",
+                url: "https://medcheckwize.com",
+              },
             },
             publisher: {
               "@type": "Organization",
@@ -129,6 +139,8 @@ export default async function BlogPostPage({
           prose-a:text-teal-600 prose-a:no-underline hover:prose-a:underline"
         dangerouslySetInnerHTML={{ __html: post.content }}
       />
+      <AuthorBox />
+
 
       <AdSlot id="5678901234" />
 

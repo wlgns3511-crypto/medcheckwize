@@ -7,7 +7,7 @@ export const dynamicParams = true;
 export const revalidate = 86400;
 
 export function generateStaticParams() {
-  return getAllStateSlugs().slice(0, 300).map((s) => ({ slug: s.slug }));
+  return getAllStateSlugs().slice(0, 10).map((s) => ({ slug: s.slug }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {

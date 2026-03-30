@@ -9,7 +9,7 @@ export const dynamicParams = true;
 export const revalidate = 86400;
 
 export async function generateStaticParams() {
-  return getAllProcedureComparisonSlugs(300).map((c) => ({ slug: c.slug }));
+  return getAllProcedureComparisonSlugs(20).map((c) => ({ slug: c.slug }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
