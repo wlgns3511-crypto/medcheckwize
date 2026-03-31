@@ -4,7 +4,7 @@ import { getAllProcedureComparisonSlugs, getProcedureComparisonBySlug } from '@/
 import { formatCurrency } from '@/lib/format';
 
 export const dynamicParams = true;
-export const revalidate = 86400;
+export const revalidate = false;
 
 export async function generateStaticParams() {
   return getAllProcedureComparisonSlugs(10).map((c) => ({ slug: c.slug }));

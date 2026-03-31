@@ -4,7 +4,7 @@ import { getStateProcedureDetail, getAllStateProcedurePairs } from '@/lib/db';
 import { formatCurrency, getDataYear } from '@/lib/format';
 
 export const dynamicParams = true;
-export const revalidate = 86400;
+export const revalidate = false;
 
 export async function generateStaticParams() {
   return getAllStateProcedurePairs().slice(0, 20).map(sp => ({

@@ -4,7 +4,7 @@ import { getAllStateSlugs, getStateBySlug, getStateProcedures } from "@/lib/db";
 import { formatCurrency, formatNumber, formatPercent, getDataYear, categoryLabel } from "@/lib/format";
 
 export const dynamicParams = true;
-export const revalidate = 86400;
+export const revalidate = false;
 
 export function generateStaticParams() {
   return getAllStateSlugs().slice(0, 10).map((s) => ({ slug: s.slug }));

@@ -4,7 +4,7 @@ import { getAllProcedureSlugs, getProcedureBySlug, getProcedureByState } from '@
 import { formatCurrency, getDataYear, categoryLabel } from '@/lib/format';
 
 export const dynamicParams = true;
-export const revalidate = 86400;
+export const revalidate = false;
 
 export async function generateStaticParams() {
   return getAllProcedureSlugs().slice(0, 10).map(p => ({ slug: p.slug }));

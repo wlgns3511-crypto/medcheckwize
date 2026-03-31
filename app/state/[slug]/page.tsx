@@ -9,7 +9,7 @@ import { FAQ } from '@/components/FAQ';
 import { CiteButton } from '@/components/CiteButton';
 
 export const dynamicParams = true;
-export const revalidate = 86400;
+export const revalidate = false;
 
 export async function generateStaticParams() {
   return getAllStateSlugs().map(s => ({ slug: s.slug }));

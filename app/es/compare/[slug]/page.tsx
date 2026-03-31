@@ -4,7 +4,7 @@ import { getAllComparisonSlugs, getComparisonBySlug, getStateProcedures } from '
 import { formatCurrency, getDataYear } from '@/lib/format';
 
 export const dynamicParams = true;
-export const revalidate = 86400;
+export const revalidate = false;
 
 export async function generateStaticParams() {
   return getAllComparisonSlugs().slice(0, 10).map(r => ({ slug: r.slug }));

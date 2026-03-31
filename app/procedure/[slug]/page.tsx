@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { getAllProcedureSlugs, getProcedureBySlug, getProcedureByState } from '@/lib/db';
+import { getAllProcedureSlugs, getProcedureBySlug, getProcedureByState, getRelatedProcedures } from '@/lib/db';
 import { formatCurrency, getDataYear, categoryLabel } from '@/lib/format';
 import { breadcrumbSchema, faqSchema, generateProcedureFAQs } from '@/lib/schema';
 import { Breadcrumb } from '@/components/Breadcrumb';
@@ -9,7 +9,7 @@ import { FAQ } from '@/components/FAQ';
 import { AuthorBox } from '@/components/AuthorBox';
 
 export const dynamicParams = true;
-export const revalidate = 86400;
+export const revalidate = false;
 
 export async function generateStaticParams() {
   return getAllProcedureSlugs().slice(0, 20).map(p => ({ slug: p.slug }));
@@ -124,6 +124,24 @@ export default async function ProcedurePage({ params }: { params: Promise<{ slug
           </table>
         </div>
       </section>
+
+      {(() => {
+        const related = getRelatedProcedures(proc.category, slug, 6);
+        if (!related.length) return null;
+        return (
+          <section className="mt-8">
+            <h2 className="text-xl font-bold mb-3">Related {categoryLabel(proc.category)} Procedures</h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              {related.map(r => (
+                <a key={r.slug} href={`/procedure/${r.slug}/`} className="block p-3 border rounded-lg hover:bg-teal-50 text-sm">
+                  <span className="font-medium text-teal-700">{r.name}</span>
+                  <span className="block text-slate-500 mt-1">{formatCurrency(r.national_avg_cost)} avg</span>
+                </a>
+              ))}
+            </div>
+          </section>
+        );
+      })()}
 
       <AuthorBox />
 

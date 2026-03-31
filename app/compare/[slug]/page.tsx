@@ -11,7 +11,7 @@ import { ComparisonBar } from '@/components/ComparisonBar';
 import { FreshnessTag } from '@/components/FreshnessTag';
 
 export const dynamicParams = true;
-export const revalidate = 86400;
+export const revalidate = false;
 
 export async function generateStaticParams() {
   return getAllComparisonSlugs().slice(0, 20).map(r => ({ slug: r.slug }));

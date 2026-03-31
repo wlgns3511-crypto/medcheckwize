@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], display: "swap" });
 
 const SITE_NAME = "MedCheckWize";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://medcheckwize.com";
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   description:
     "Compare Medicare and Medicaid costs, coverage, and healthcare expenses across all 50 US states. Find procedure costs, premium estimates, and coverage details.",
   metadataBase: new URL(SITE_URL),
-  robots: { index: true, follow: true },
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large" } },
   openGraph: { type: "website", siteName: SITE_NAME, locale: "en_US" },
 };
 
@@ -24,6 +24,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <head>
+        <link rel="preconnect" href="https://www.googletagmanager.com" />
+        <link rel="dns-prefetch" href="https://pagead2.googlesyndication.com" />
         <script async src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} />
         <script dangerouslySetInnerHTML={{ __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date());gtag("config","${GA_ID}")` }} />
         <script
@@ -73,6 +75,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               <a href="/about/" className="hover:text-teal-600">About</a>{" | "}
               <a href="/privacy/" className="hover:text-teal-600">Privacy</a>{" | "}
               <a href="/terms/" className="hover:text-teal-600">Terms</a>{" | "}
+              <a href="/disclaimer/" className="hover:text-teal-600">Disclaimer</a>{" | "}
               <a href="/contact/" className="hover:text-teal-600">Contact</a>
             </p>
             <div className="mt-4 pt-4 border-t border-slate-100">

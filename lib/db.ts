@@ -241,3 +241,11 @@ export function getProcedureComparisonBySlug(slug: string): { a: Procedure; b: P
   if (!a || !b) return undefined;
   return { a, b };
 }
+
+// --- Related procedures (same category) ---
+
+export function getRelatedProcedures(category: string, excludeSlug: string, limit = 6): Procedure[] {
+  return getDb().prepare(
+    'SELECT * FROM procedures WHERE category = ? AND slug != ? ORDER BY national_avg_cost DESC LIMIT ?'
+  ).all(category, excludeSlug, limit) as Procedure[];
+}
