@@ -97,6 +97,11 @@ export function getLowestSpendingStates(limit = 10): State[] {
   return getDb().prepare('SELECT * FROM states ORDER BY avg_medicare_spending_per_capita ASC LIMIT ?').all(limit) as State[];
 }
 
+export function getAffordabilityRank(abbr: string): number {
+  const rows = getDb().prepare('SELECT abbr FROM states ORDER BY avg_medicare_spending_per_capita ASC').all() as { abbr: string }[];
+  return rows.findIndex(r => r.abbr === abbr) + 1;
+}
+
 // ── Procedure queries ────────────────────────────────────────────────────────
 
 export function getAllProcedures(): Procedure[] {
@@ -248,4 +253,26 @@ export function getRelatedProcedures(category: string, excludeSlug: string, limi
   return getDb().prepare(
     'SELECT * FROM procedures WHERE category = ? AND slug != ? ORDER BY national_avg_cost DESC LIMIT ?'
   ).all(category, excludeSlug, limit) as Procedure[];
+}
+
+// --- Similar spending states ---
+
+export function getSimilarSpendingStates(spending: number, excludeAbbr: string, limit = 6): State[] {
+  return getDb().prepare(
+    'SELECT * FROM states WHERE abbr != ? ORDER BY ABS(avg_medicare_spending_per_capita - ?) ASC LIMIT ?'
+  ).all(excludeAbbr, spending, limit) as State[];
+}
+
+// --- Top procedures for a state (one per category) ---
+
+export function getTopProceduresByCategory(stateAbbr: string, limit = 6): (StateProcedure & { name: string; category: string })[] {
+  return getDb().prepare(`
+    SELECT sp.*, p.name, p.category
+    FROM state_procedures sp
+    JOIN procedures p ON p.slug = sp.procedure_slug
+    WHERE sp.state = ?
+    GROUP BY p.category
+    ORDER BY sp.avg_cost DESC
+    LIMIT ?
+  `).all(stateAbbr, limit) as (StateProcedure & { name: string; category: string })[];
 }

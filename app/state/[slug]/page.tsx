@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { getAllStateSlugs, getStateBySlug, getStateProcedures, getComparisonLinksForState, getStateByAbbr } from '@/lib/db';
+import { getAllStateSlugs, getStateBySlug, getStateProcedures, getComparisonLinksForState, getStateByAbbr, getNationalStats, getAffordabilityRank, getSimilarSpendingStates, getTopProceduresByCategory } from '@/lib/db';
 import { formatCurrency, formatNumber, formatPercent, getDataYear, categoryLabel } from '@/lib/format';
 import { breadcrumbSchema, faqSchema, generateStateFAQs } from '@/lib/schema';
 import { Breadcrumb } from '@/components/Breadcrumb';
@@ -35,6 +35,11 @@ export default async function StatePage({ params }: { params: Promise<{ slug: st
   const procedures = getStateProcedures(state.abbr);
   const faqs = generateStateFAQs(state);
   const compLinks = getComparisonLinksForState(state.abbr, 8);
+  const national = getNationalStats();
+  const affordRank = getAffordabilityRank(state.abbr);
+  const spendingDiff = ((state.avg_medicare_spending_per_capita - national.avg_spending) / national.avg_spending * 100);
+  const premiumTotal = state.part_b_premium + state.part_d_premium_avg + state.medigap_avg_premium;
+  const avgPremiumTotal = national.avg_part_b + national.avg_part_d + national.avg_medigap;
 
   // Group procedures by category
   const grouped: Record<string, typeof procedures> = {};
@@ -91,6 +96,37 @@ export default async function StatePage({ params }: { params: Promise<{ slug: st
           <div className="text-xs text-slate-500">Uninsured Rate</div>
         </div>
       </div>
+
+      {/* Data Insights */}
+      <section className="mb-6 bg-teal-50 border border-teal-200 rounded-xl p-5">
+        <h2 className="text-lg font-bold text-teal-900 mb-3">Key Insights</h2>
+        <div className="grid sm:grid-cols-2 gap-4 text-sm">
+          <div className="flex items-start gap-2">
+            <span className="text-teal-600 mt-0.5">{spendingDiff > 0 ? '▲' : '▼'}</span>
+            <p className="text-slate-700">
+              Medicare spending in {state.state} is <strong className={spendingDiff > 0 ? 'text-red-700' : 'text-green-700'}>{Math.abs(spendingDiff).toFixed(1)}% {spendingDiff > 0 ? 'above' : 'below'}</strong> the national average of {formatCurrency(Math.round(national.avg_spending))}/capita.
+            </p>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="text-teal-600 mt-0.5">#</span>
+            <p className="text-slate-700">
+              {state.state} ranks <strong className="text-teal-700">#{affordRank} out of 50</strong> for Medicare affordability (lower spending = better rank).
+            </p>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="text-teal-600 mt-0.5">$</span>
+            <p className="text-slate-700">
+              Total monthly premiums (B + D + Medigap) average <strong>{formatCurrency(Math.round(premiumTotal))}/mo</strong>, which is {premiumTotal < avgPremiumTotal ? <span className="text-green-700 font-medium">{formatCurrency(Math.round(avgPremiumTotal - premiumTotal))} less</span> : <span className="text-red-700 font-medium">{formatCurrency(Math.round(premiumTotal - avgPremiumTotal))} more</span>} than the national average.
+            </p>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="text-teal-600 mt-0.5">%</span>
+            <p className="text-slate-700">
+              Uninsured rate of <strong>{formatPercent(state.uninsured_rate)}</strong> is {state.uninsured_rate < national.avg_uninsured ? <span className="text-green-700 font-medium">{(national.avg_uninsured - state.uninsured_rate).toFixed(1)}pp below</span> : <span className="text-red-700 font-medium">{(state.uninsured_rate - national.avg_uninsured).toFixed(1)}pp above</span>} the national average of {formatPercent(national.avg_uninsured)}.
+            </p>
+          </div>
+        </div>
+      </section>
 
       {/* Premium Details */}
       <section className="mb-6">
@@ -172,8 +208,54 @@ export default async function StatePage({ params }: { params: Promise<{ slug: st
         </section>
       )}
 
+      {/* Related Procedures */}
+      {(() => {
+        const topProcs = getTopProceduresByCategory(state.abbr, 8);
+        if (topProcs.length === 0) return null;
+        return (
+          <section className="mb-6">
+            <h2 className="text-xl font-bold mb-3">Related Procedures in {state.state}</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {topProcs.map(p => (
+                <a key={p.procedure_slug} href={`/state/${slug}/${p.procedure_slug}/`}
+                  className="block p-3 border border-slate-200 rounded-lg hover:border-teal-300 hover:bg-teal-50 transition-colors text-sm">
+                  <span className="font-medium text-teal-700">{p.name}</span>
+                  <span className="block text-xs text-slate-400 mt-1">{categoryLabel(p.category)} &middot; {formatCurrency(p.avg_cost)}</span>
+                </a>
+              ))}
+            </div>
+          </section>
+        );
+      })()}
+
+      {/* Similar Cost States */}
+      {(() => {
+        const similar = getSimilarSpendingStates(state.avg_medicare_spending_per_capita, state.abbr, 6);
+        if (similar.length === 0) return null;
+        return (
+          <section className="mb-6">
+            <h2 className="text-xl font-bold mb-3">States with Similar Medicare Spending</h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              {similar.map(s => (
+                <a key={s.slug} href={`/state/${s.slug}/`}
+                  className="block p-3 border border-slate-200 rounded-lg hover:border-teal-300 hover:bg-teal-50 transition-colors text-sm">
+                  <span className="font-medium text-teal-700">{s.state} ({s.abbr})</span>
+                  <span className="block text-xs text-slate-400 mt-1">{formatCurrency(s.avg_medicare_spending_per_capita)}/capita</span>
+                </a>
+              ))}
+            </div>
+          </section>
+        );
+      })()}
+
       <div className="flex items-center gap-4 mt-4">
         <CiteButton title={`Medicare & Medicaid Costs in ${state.state}`} url={`https://medcheckwize.com/state/${slug}/`} source="MedCheckWize (CMS.gov)" />
+      </div>
+
+      <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 my-6 text-sm">
+        <p className="text-slate-600">
+          <strong>Related:</strong> <a href="https://eldercarepeek.com" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline">Senior care costs</a> and <a href="https://medcostpeek.com" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline">global healthcare prices</a> comparison.
+        </p>
       </div>
 
       {/* Related Data Resources */}
