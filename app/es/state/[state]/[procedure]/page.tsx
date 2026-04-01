@@ -25,6 +25,7 @@ export async function generateMetadata({ params }: { params: Promise<{ state: st
       canonical: `/es/state/${stateSlug}/${procSlug}/`,
       languages: { en: `/state/${stateSlug}/${procSlug}/`, es: `/es/state/${stateSlug}/${procSlug}/`, 'x-default': `/state/${stateSlug}/${procSlug}/` },
     },
+    openGraph: { url: `/es/state/${stateSlug}/${procSlug}/` },
   };
 }
 

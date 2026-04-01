@@ -21,6 +21,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title: `${a.name} vs ${b.name} - Medicare Cost Comparison`,
     description: `Compare Medicare costs: ${a.name} costs ${formatCurrency(a.national_avg_cost)} (Medicare pays ${formatCurrency(a.medicare_pays)}) vs ${b.name} costs ${formatCurrency(b.national_avg_cost)} (Medicare pays ${formatCurrency(b.medicare_pays)}).`,
     alternates: { canonical: `/procedure-compare/${slug}/` },
+    openGraph: { url: `/procedure-compare/${slug}/` },
   };
 }
 

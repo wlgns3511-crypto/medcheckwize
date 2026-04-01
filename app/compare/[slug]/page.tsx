@@ -25,6 +25,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title: `${pair.a.state} vs ${pair.b.state} - Medicare & Healthcare Cost Comparison`,
     description: `Compare Medicare costs between ${pair.a.state} and ${pair.b.state}: spending per capita, premiums, procedure costs, and Medicaid coverage.`,
     alternates: { canonical: `/compare/${slug}/` },
+    openGraph: { url: `/compare/${slug}/` },
   };
 }
 

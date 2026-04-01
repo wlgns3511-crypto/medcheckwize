@@ -23,6 +23,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title: `Medicare & Medicaid Costs in ${state.state} (${state.abbr}) - ${getDataYear()}`,
     description: `${state.state} Medicare spending: ${formatCurrency(state.avg_medicare_spending_per_capita)}/capita. Compare procedure costs, premiums, and coverage for ${formatNumber(state.medicare_enrollees)} beneficiaries.`,
     alternates: { canonical: `/state/${slug}/` },
+    openGraph: { url: `/state/${slug}/` },
   };
 }
 

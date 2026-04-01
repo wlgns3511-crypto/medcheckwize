@@ -23,6 +23,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title: `${proc.name} Cost with Medicare - ${getDataYear()} Average Prices`,
     description: `${proc.name} costs ${formatCurrency(proc.national_avg_cost)} on average. Medicare pays ${formatCurrency(proc.medicare_pays)}, patient pays ${formatCurrency(proc.patient_pays)}. Compare costs across all 50 states.`,
     alternates: { canonical: `/procedure/${slug}/` },
+    openGraph: { url: `/procedure/${slug}/` },
   };
 }
 

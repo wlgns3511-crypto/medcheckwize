@@ -21,6 +21,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       canonical: `/es/compare/${slug}/`,
       languages: { en: `/compare/${slug}/`, es: `/es/compare/${slug}/`, 'x-default': `/compare/${slug}/` },
     },
+    openGraph: { url: `/es/compare/${slug}/` },
   };
 }
 

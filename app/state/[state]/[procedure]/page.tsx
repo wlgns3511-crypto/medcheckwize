@@ -31,6 +31,7 @@ export async function generateMetadata({ params }: { params: Promise<{ state: st
     title: `${procedure.name} Cost in ${state.state} - Medicare Coverage ${getDataYear()}`,
     description: `${procedure.name} costs ${formatCurrency(stateProcedure.avg_cost)} in ${state.state}. Medicare pays ${formatCurrency(stateProcedure.medicare_pays)}, you pay ${formatCurrency(stateProcedure.patient_pays)}.`,
     alternates: { canonical: `/state/${stateSlug}/${procSlug}/` },
+    openGraph: { url: `/state/${stateSlug}/${procSlug}/` },
   };
 }
 
