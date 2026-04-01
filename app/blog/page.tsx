@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   description:
     "Expert guides on Medicare and Medicaid: plan comparisons, cost breakdowns, enrollment deadlines, and strategies to maximize your healthcare coverage.",
   alternates: { canonical: "/blog/" },
+  openGraph: { url: "/blog/" },
 };
 
 function formatDate(dateStr: string) {

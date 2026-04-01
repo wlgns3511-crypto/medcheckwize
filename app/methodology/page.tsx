@@ -4,6 +4,7 @@ export const metadata: Metadata = {
   title: "Our Methodology",
   description: "Learn how MedCheckWize collects, processes, and verifies Medicare procedure costs and state healthcare data.",
   alternates: { canonical: "/methodology/" },
+  openGraph: { url: "/methodology/" },
 };
 
 export default function MethodologyPage() {

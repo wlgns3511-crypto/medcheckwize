@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
-export const metadata: Metadata = { title: 'Contact', description: 'Contact MedCheckWize.', alternates: { canonical: "/contact/" } };
+export const metadata: Metadata = { title: 'Contact', description: 'Contact MedCheckWize.', alternates: { canonical: "/contact/" },
+  openGraph: { url: "/contact/" },
+};
 
 export default function ContactPage() {
   return (

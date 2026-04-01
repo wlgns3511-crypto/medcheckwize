@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: 'Search Medicare Procedure Costs - Find What Medicare Pays',
   description: 'Search Medicare procedure costs by name or category. Find out what Medicare pays and your out-of-pocket costs for 100+ medical procedures across all 50 states.',
   alternates: { canonical: '/search/' },
+  openGraph: { url: "/search/" },
 };
 
 const POPULAR_SEARCHES = [

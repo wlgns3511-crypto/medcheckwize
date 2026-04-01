@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
-export const metadata: Metadata = { title: 'About', description: 'About MedCheckWize - free Medicare and Medicaid cost data.', alternates: { canonical: "/about/" } };
+export const metadata: Metadata = { title: 'About', description: 'About MedCheckWize - free Medicare and Medicaid cost data.', alternates: { canonical: "/about/" },
+  openGraph: { url: "/about/" },
+};
 
 export default function AboutPage() {
   return (

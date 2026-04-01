@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: 'Medicare Cost Calculator - Estimate Your Annual Healthcare Costs',
   description: 'Calculate your estimated Medicare costs including Part B premiums, Part D coverage, Medigap plans, and expected procedure expenses. Free Medicare cost estimator.',
   alternates: { canonical: '/calculator/' },
+  openGraph: { url: "/calculator/" },
 };
 
 export default function CalculatorPage() {

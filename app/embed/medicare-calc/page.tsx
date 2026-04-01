@@ -4,6 +4,7 @@ import { MedicareCostCalculator } from '@/components/MedicareCostCalculator';
 export const metadata: Metadata = {
   title: 'Medicare Cost Calculator - Embeddable Widget',
   robots: 'noindex, nofollow',
+  openGraph: { url: "/embed/medicare-calc/" },
 };
 
 export default function EmbedMedicareCalcPage() {
