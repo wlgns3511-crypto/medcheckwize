@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-export const metadata: Metadata = { title: 'Privacy Policy', description: 'MedCheckWize privacy policy.' };
+export const metadata: Metadata = { title: 'Privacy Policy', description: 'MedCheckWize privacy policy.', alternates: { canonical: "/privacy/" } };
 
 export default function PrivacyPage() {
   return (
@@ -8,9 +8,9 @@ export default function PrivacyPage() {
       <div className="prose prose-slate max-w-none">
         <p>Last updated: March 2026</p>
         <h2>Information We Collect</h2>
-        <p>MedCheckWize does not collect personal information. We do not require account creation or use tracking cookies.</p>
+        <p>MedCheckWize does not collect personal information. We do not require account creation. We use cookies through Google Analytics and Google AdSense to analyze traffic and serve ads.</p>
         <h2>Third-Party Services</h2>
-        <p>We use Google AdSense to display advertisements. Google may use cookies to serve ads based on your prior visits. You can opt out via Google&apos;s Ads Settings.</p>
+        <p>We use Google AdSense to display advertisements. Google may use cookies to serve ads based on your prior visits. You can opt out via <a href="https://www.google.com/settings/ads" className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">Google Ads Settings</a> or visit <a href="https://www.aboutads.info/choices/" className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">www.aboutads.info</a>.</p>
         <h2>Contact</h2>
         <p>Questions? Visit our <a href="/contact/">contact page</a>.</p>
       </div>

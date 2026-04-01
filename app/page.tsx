@@ -1,6 +1,10 @@
 import { getAllStates, getNationalStats, getTopSpendingStates, getAllProcedures, getProcedureCategories } from '@/lib/db';
 import { formatCurrency, formatNumber, formatPercent, formatCompact, categoryLabel, getDataYear } from '@/lib/format';
 import { AdSlot } from '@/components/AdSlot';
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { alternates: { canonical: "/" } };
+
 
 export default function Home() {
   const year = getDataYear();
