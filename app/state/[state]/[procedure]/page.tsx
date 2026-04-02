@@ -16,7 +16,7 @@ export const revalidate = false;
 
 export async function generateStaticParams() {
   // Pre-render a subset for ISR
-  return getAllStateProcedurePairs().slice(0, 50).map(sp => ({
+  return getAllStateProcedurePairs().slice(0, 500).map(sp => ({
     state: sp.state_slug,
     procedure: sp.procedure_slug,
   }));

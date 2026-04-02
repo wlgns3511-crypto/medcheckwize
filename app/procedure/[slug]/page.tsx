@@ -14,7 +14,7 @@ export const dynamicParams = false;
 export const revalidate = false;
 
 export async function generateStaticParams() {
-  return getAllProcedureSlugs().slice(0, 20).map(p => ({ slug: p.slug }));
+  return getAllProcedureSlugs().map(p => ({ slug: p.slug }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
