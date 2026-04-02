@@ -7,6 +7,7 @@ import { Breadcrumb } from '@/components/Breadcrumb';
 import { AdSlot } from '@/components/AdSlot';
 import { FAQ } from '@/components/FAQ';
 import { AuthorBox } from '@/components/AuthorBox';
+import { ProcedureCostBar } from '@/components/ProcedureCostBar';
 import { MedicareCostCalculator } from '@/components/MedicareCostCalculator';
 
 export const dynamicParams = false;
@@ -97,6 +98,12 @@ export default async function ProcedurePage({ params }: { params: Promise<{ slug
       <AdSlot id="procedure-mid" />
 
       <MedicareCostCalculator />
+
+      <ProcedureCostBar
+        procedureName={proc.name}
+        nationalAvg={proc.national_avg_cost}
+        stateData={stateData}
+      />
 
       {/* State-by-State Comparison Table */}
       <section className="mb-6">
