@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { getAllProcedureSlugs, getProcedureBySlug, getProcedureByState } from '@/lib/db';
 import { formatCurrency, getDataYear, categoryLabel } from '@/lib/format';
 
-export const dynamicParams = true;
+export const dynamicParams = false;
 export const revalidate = false;
 
 export async function generateStaticParams() {

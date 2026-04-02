@@ -10,7 +10,7 @@ import { FAQ } from '@/components/FAQ';
 import { ComparisonBar } from '@/components/ComparisonBar';
 import { FreshnessTag } from '@/components/FreshnessTag';
 
-export const dynamicParams = true;
+export const dynamicParams = false;
 export const revalidate = false;
 
 export async function generateStaticParams() {

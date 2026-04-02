@@ -8,7 +8,7 @@ import { AdSlot } from '@/components/AdSlot';
 import { FAQ } from '@/components/FAQ';
 import { AuthorBox } from '@/components/AuthorBox';
 
-export const dynamicParams = true;
+export const dynamicParams = false;
 export const revalidate = false;
 
 export async function generateStaticParams() {

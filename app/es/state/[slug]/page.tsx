@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getAllStateSlugs, getStateBySlug, getStateProcedures } from "@/lib/db";
 import { formatCurrency, formatNumber, formatPercent, getDataYear, categoryLabel } from "@/lib/format";
 
-export const dynamicParams = true;
+export const dynamicParams = false;
 export const revalidate = false;
 
 export function generateStaticParams() {

@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { getAllProcedureComparisonSlugs, getProcedureComparisonBySlug } from '@/lib/db';
 import { formatCurrency } from '@/lib/format';
 
-export const dynamicParams = true;
+export const dynamicParams = false;
 export const revalidate = false;
 
 export async function generateStaticParams() {

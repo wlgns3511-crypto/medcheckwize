@@ -5,7 +5,7 @@ import { formatCurrency } from '@/lib/format';
 import { AdSlot } from '@/components/AdSlot';
 import { Breadcrumb } from '@/components/Breadcrumb';
 
-export const dynamicParams = true;
+export const dynamicParams = false;
 export const revalidate = false;
 
 export async function generateStaticParams() {
