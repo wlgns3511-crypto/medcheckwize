@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { getAllComparisonSlugs, getComparisonBySlug, getStateProcedures } from '@/lib/db';
 import { formatCurrency, getDataYear } from '@/lib/format';
 import { breadcrumbSchema, faqSchema, generateComparisonFAQs } from '@/lib/schema';
@@ -9,28 +9,48 @@ import { AdSlot } from '@/components/AdSlot';
 import { FAQ } from '@/components/FAQ';
 import { ComparisonBar } from '@/components/ComparisonBar';
 import { FreshnessTag } from '@/components/FreshnessTag';
+import { CompareRich } from '@/components/compare/CompareRich';
+
+const STATIC_COMPARISON_SLUGS = getAllComparisonSlugs().slice(0, 100).map(r => r.slug);
+const STATIC_COMPARISON_SET = new Set(STATIC_COMPARISON_SLUGS);
+
+function toCanonicalComparisonSlug(slug: string): string | null {
+  const pair = getComparisonBySlug(slug);
+  if (!pair) return null;
+  return [pair.a.slug, pair.b.slug].sort().join('-vs-');
+}
 
 export const dynamicParams = false;
-export const revalidate = false;
+export const revalidate = 86400;
 
 export async function generateStaticParams() {
-  return getAllComparisonSlugs().slice(0, 20).map(r => ({ slug: r.slug }));
+  return STATIC_COMPARISON_SLUGS.flatMap((slug) => {
+    const pair = getComparisonBySlug(slug);
+    if (!pair) return [{ slug }];
+    const reverse = `${pair.b.slug}-vs-${pair.a.slug}`;
+    return reverse === slug ? [{ slug }] : [{ slug }, { slug: reverse }];
+  });
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const pair = getComparisonBySlug(slug);
+  const canonical = toCanonicalComparisonSlug(slug);
+  if (!canonical || !STATIC_COMPARISON_SET.has(canonical)) return {};
+  const pair = getComparisonBySlug(canonical);
   if (!pair) return {};
   return {
     title: `${pair.a.state} vs ${pair.b.state} - Medicare & Healthcare Cost Comparison`,
     description: `Compare Medicare costs between ${pair.a.state} and ${pair.b.state}: spending per capita, premiums, procedure costs, and Medicaid coverage.`,
-    alternates: { canonical: `/compare/${slug}/` },
-    openGraph: { url: `/compare/${slug}/` },
+    alternates: { canonical: `/compare/${canonical}/` },
+    openGraph: { url: `/compare/${canonical}/` },
   };
 }
 
 export default async function ComparePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  const canonical = toCanonicalComparisonSlug(slug);
+  if (!canonical || !STATIC_COMPARISON_SET.has(canonical)) notFound();
+  if (canonical !== slug) redirect(`/compare/${canonical}/`);
   const pair = getComparisonBySlug(slug);
   if (!pair) notFound();
 
@@ -39,8 +59,8 @@ export default async function ComparePage({ params }: { params: Promise<{ slug: 
   const faqs = generateComparisonFAQs(a, b);
 
   // Get top procedure comparisons
-  const procsA = getStateProcedures(a.abbr).slice(0, 10);
-  const procsB = getStateProcedures(b.abbr).slice(0, 10);
+  const procsA = getStateProcedures(a.abbr);
+  const procsB = getStateProcedures(b.abbr);
 
   // Build procedure comparison
   const procComparison: { name: string; slug: string; costA: number; costB: number }[] = [];
@@ -152,6 +172,9 @@ export default async function ComparePage({ params }: { params: Promise<{ slug: 
           View {b.state}
         </a>
       </div>
+
+
+      <CompareRich slug={canonical} a={a} b={b} />
 
       <FAQ items={faqs} />
 

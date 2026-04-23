@@ -4,11 +4,11 @@ import { getAllPosts, getPostBySlug } from "@/lib/blog";
 import { AdSlot } from "@/components/AdSlot";
 import { AuthorBox } from "@/components/AuthorBox";
 
-export const dynamicParams = false;
-export const revalidate = false;
+export const dynamicParams = true;
+export const revalidate = 86400;
 
 export function generateStaticParams() {
-  return getAllPosts().slice(0, 5).map((p) => ({ slug: p.slug }));
+  return getAllPosts().map((p) => ({ slug: p.slug }));
 }
 
 export async function generateMetadata({
@@ -54,7 +54,7 @@ export default async function BlogPostPage({
   const allPosts = getAllPosts().filter((p) => p.slug !== slug);
   const related = allPosts
     .filter((p) => p.category === post.category)
-    .slice(0, 3);
+    ;
   const others = allPosts.filter((p) => p.category !== post.category).slice(0, 3 - related.length);
   const suggestions = [...related, ...others];
 
@@ -72,15 +72,9 @@ export default async function BlogPostPage({
             datePublished: post.publishedAt,
             dateModified: post.updatedAt ?? post.publishedAt,
             author: {
-              "@type": "Person",
-              name: "MedCheckWize Health Team",
-              description: "Healthcare data and drug safety research",
-              url: "https://medcheckwize.com/about/",
-              worksFor: {
-                "@type": "Organization",
-                name: "MedCheckWize",
-                url: "https://medcheckwize.com",
-              },
+              "@type": "Organization",
+              name: "MedCheckWize Editorial Team",
+              url: "https://medcheckwize.com/editorial-policy/",
             },
             publisher: {
               "@type": "Organization",

@@ -3,11 +3,13 @@ import { notFound } from 'next/navigation';
 import { getAllProcedureComparisonSlugs, getProcedureComparisonBySlug } from '@/lib/db';
 import { formatCurrency } from '@/lib/format';
 
+// HCU-defense 2026-04-22: was dynamicParams=true emitting 12,720 sitemap URLs.
+// Now dynamicParams=false — only prerendered top-100 valid, rest 404.
 export const dynamicParams = false;
-export const revalidate = false;
+export const revalidate = 86400;
 
 export async function generateStaticParams() {
-  return getAllProcedureComparisonSlugs(10).map((c) => ({ slug: c.slug }));
+  return getAllProcedureComparisonSlugs().slice(0, 100).map((c) => ({ slug: c.slug }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {

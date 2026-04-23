@@ -3,11 +3,11 @@ import { notFound } from "next/navigation";
 import { getAllStateSlugs, getStateBySlug, getStateProcedures } from "@/lib/db";
 import { formatCurrency, formatNumber, formatPercent, getDataYear, categoryLabel } from "@/lib/format";
 
-export const dynamicParams = false;
-export const revalidate = false;
+export const dynamicParams = true;
+export const revalidate = 86400;
 
 export function generateStaticParams() {
-  return getAllStateSlugs().slice(0, 10).map((s) => ({ slug: s.slug }));
+  return getAllStateSlugs().map((s) => ({ slug: s.slug }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -97,7 +97,7 @@ export default async function StatePageEs({ params }: { params: Promise<{ slug: 
       {/* Costos de procedimientos */}
       <section className="mb-6">
         <h2 className="text-xl font-bold mb-3">Costos de Procedimientos en {state.state}</h2>
-        {Object.entries(grouped).slice(0, 3).map(([category, procs]) => (
+        {Object.entries(grouped).map(([category, procs]) => (
           <div key={category} className="mb-6">
             <h3 className="text-lg font-semibold mb-2 text-teal-700">{categoryLabel(category)}</h3>
             <div className="overflow-x-auto">
@@ -111,7 +111,7 @@ export default async function StatePageEs({ params }: { params: Promise<{ slug: 
                   </tr>
                 </thead>
                 <tbody>
-                  {procs.slice(0, 10).map((p, i) => (
+                  {procs.map((p, i) => (
                     <tr key={p.procedure_slug} className={i % 2 === 0 ? "bg-white" : "bg-slate-50"}>
                       <td className="px-3 py-2">{p.name}</td>
                       <td className="px-3 py-2 text-right">{formatCurrency(p.avg_cost)}</td>

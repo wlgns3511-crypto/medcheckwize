@@ -1,27 +1,36 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { getAllComparisonSlugs, getComparisonBySlug, getStateProcedures } from '@/lib/db';
 import { formatCurrency, getDataYear } from '@/lib/format';
 
+const STATIC_COMPARISON_SLUGS = getAllComparisonSlugs().slice(0, 100).map(r => r.slug);
+const STATIC_COMPARISON_SET = new Set(STATIC_COMPARISON_SLUGS);
+
 export const dynamicParams = false;
-export const revalidate = false;
+export const revalidate = 86400;
 
 export async function generateStaticParams() {
-  return getAllComparisonSlugs().slice(0, 10).map(r => ({ slug: r.slug }));
+  return STATIC_COMPARISON_SLUGS.flatMap((slug) => {
+    const pair = getComparisonBySlug(slug);
+    if (!pair) return [];
+    return [{ slug }, { slug: `${pair.b.slug}-vs-${pair.a.slug}` }];
+  });
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const pair = getComparisonBySlug(slug);
   if (!pair) return {};
+  const canonicalSlug = [pair.a.slug, pair.b.slug].sort().join('-vs-');
+  if (!STATIC_COMPARISON_SET.has(canonicalSlug)) return {};
   return {
     title: `${pair.a.state} vs ${pair.b.state} - Costos de Medicare`,
     description: `Compare costos de Medicare entre ${pair.a.state} y ${pair.b.state}: gasto por persona, primas, procedimientos y Medicaid.`,
     alternates: {
-      canonical: `/es/compare/${slug}/`,
-      languages: { en: `/compare/${slug}/`, es: `/es/compare/${slug}/`, 'x-default': `/compare/${slug}/` },
+      canonical: `/es/compare/${canonicalSlug}/`,
+      languages: { en: `/compare/${canonicalSlug}/`, es: `/es/compare/${canonicalSlug}/`, 'x-default': `/compare/${canonicalSlug}/` },
     },
-    openGraph: { url: `/es/compare/${slug}/` },
+    openGraph: { url: `/es/compare/${canonicalSlug}/` },
   };
 }
 
@@ -29,12 +38,17 @@ export default async function ComparePageEs({ params }: { params: Promise<{ slug
   const { slug } = await params;
   const pair = getComparisonBySlug(slug);
   if (!pair) notFound();
+  const canonicalSlug = [pair.a.slug, pair.b.slug].sort().join('-vs-');
+  if (!STATIC_COMPARISON_SET.has(canonicalSlug)) notFound();
+  if (canonicalSlug !== slug) {
+    redirect(`/es/compare/${canonicalSlug}/`);
+  }
 
   const { a, b } = pair;
   const year = getDataYear();
 
-  const procsA = getStateProcedures(a.abbr).slice(0, 10);
-  const procsB = getStateProcedures(b.abbr).slice(0, 10);
+  const procsA = getStateProcedures(a.abbr);
+  const procsB = getStateProcedures(b.abbr);
 
   const procComparison: { name: string; slug: string; costA: number; costB: number }[] = [];
   for (const pa of procsA) {
@@ -55,7 +69,7 @@ export default async function ComparePageEs({ params }: { params: Promise<{ slug
       <h1 className="text-3xl font-bold mb-2">{a.state} vs {b.state}: Costos de Medicare ({year})</h1>
       <p className="text-slate-600 mb-2">Comparaci&oacute;n de gastos, primas y cobertura de Medicare.</p>
       <p className="text-xs text-slate-400 mb-6">
-        <a href={`/compare/${slug}/`} className="text-blue-500 hover:underline">English version</a>
+        <a href={`/compare/${canonicalSlug}/`} className="text-blue-500 hover:underline">English version</a>
       </p>
 
       {/* Tabla comparativa */}

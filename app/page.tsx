@@ -1,6 +1,7 @@
 import { getAllStates, getNationalStats, getTopSpendingStates, getAllProcedures, getProcedureCategories } from '@/lib/db';
 import { formatCurrency, formatNumber, formatPercent, formatCompact, categoryLabel, getDataYear } from '@/lib/format';
 import { AdSlot } from '@/components/AdSlot';
+import { PopularEntities } from '@/components/upgrades/PopularEntities';
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { alternates: { canonical: "/" },
@@ -46,6 +47,17 @@ export default function Home() {
         </div>
       </section>
 
+      <PopularEntities
+        heading="Most Searched Procedures"
+        items={procedures.slice(0, 12).map(p => ({
+          name: p.name,
+          href: `/procedure/${p.slug}/`,
+          stat: `Avg ${formatCurrency(Math.round(p.national_avg_cost))}`,
+        }))}
+        viewAllHref="/rankings"
+        viewAllLabel="View all procedures →"
+      />
+
       <AdSlot id="home-top" />
 
       {/* Top Medicare Spending States */}
@@ -88,7 +100,7 @@ export default function Home() {
               <div className="font-medium text-teal-700">{categoryLabel(cat.category)}</div>
               <div className="text-xs text-slate-500 mt-1">{cat.count} procedures</div>
               <div className="mt-2 space-y-1">
-                {procedures.filter(p => p.category === cat.category).slice(0, 3).map(p => (
+                {procedures.filter(p => p.category === cat.category).map(p => (
                   <a key={p.slug} href={`/procedure/${p.slug}/`} className="block text-xs text-slate-600 hover:text-teal-600 truncate">
                     {p.name}
                   </a>

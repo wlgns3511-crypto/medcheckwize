@@ -5,11 +5,13 @@ import { formatCurrency } from '@/lib/format';
 import { AdSlot } from '@/components/AdSlot';
 import { Breadcrumb } from '@/components/Breadcrumb';
 
+// HCU-defense 2026-04-22: was dynamicParams=true emitting 12,720 sitemap URLs.
+// Now dynamicParams=false — only prerendered top-100 valid, rest 404.
 export const dynamicParams = false;
-export const revalidate = false;
+export const revalidate = 86400;
 
 export async function generateStaticParams() {
-  return getAllProcedureComparisonSlugs(20).map((c) => ({ slug: c.slug }));
+  return getAllProcedureComparisonSlugs().slice(0, 100).map((c) => ({ slug: c.slug }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {

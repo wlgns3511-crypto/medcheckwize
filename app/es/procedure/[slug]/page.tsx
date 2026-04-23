@@ -3,11 +3,11 @@ import { notFound } from 'next/navigation';
 import { getAllProcedureSlugs, getProcedureBySlug, getProcedureByState } from '@/lib/db';
 import { formatCurrency, getDataYear, categoryLabel } from '@/lib/format';
 
-export const dynamicParams = false;
-export const revalidate = false;
+export const dynamicParams = true;
+export const revalidate = 86400;
 
 export async function generateStaticParams() {
-  return getAllProcedureSlugs().slice(0, 10).map(p => ({ slug: p.slug }));
+  return getAllProcedureSlugs().map(p => ({ slug: p.slug }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {

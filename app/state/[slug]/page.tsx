@@ -8,9 +8,13 @@ import { AdSlot } from '@/components/AdSlot';
 import { FAQ } from '@/components/FAQ';
 import { CiteButton } from '@/components/CiteButton';
 import { MedicareCostCalculator } from '@/components/MedicareCostCalculator';
+import { FeedbackButton } from '@/components/FeedbackButton';
+import { InsightBlock } from '@/components/upgrades/InsightBlock';
+import { getStateInsights } from '@/lib/insights';
+import { StateRich } from '@/components/state/StateRich';
 
-export const dynamicParams = false;
-export const revalidate = false;
+export const dynamicParams = true;
+export const revalidate = 86400;
 
 export async function generateStaticParams() {
   return getAllStateSlugs().map(s => ({ slug: s.slug }));
@@ -39,9 +43,6 @@ export default async function StatePage({ params }: { params: Promise<{ slug: st
   const compLinks = getComparisonLinksForState(state.abbr, 8);
   const national = getNationalStats();
   const affordRank = getAffordabilityRank(state.abbr);
-  const spendingDiff = ((state.avg_medicare_spending_per_capita - national.avg_spending) / national.avg_spending * 100);
-  const premiumTotal = state.part_b_premium + state.part_d_premium_avg + state.medigap_avg_premium;
-  const avgPremiumTotal = national.avg_part_b + national.avg_part_d + national.avg_medigap;
 
   // Group procedures by category
   const grouped: Record<string, typeof procedures> = {};
@@ -63,8 +64,8 @@ export default async function StatePage({ params }: { params: Promise<{ slug: st
             "url": `https://medcheckwize.com/state/${slug}/`,
             "license": "https://creativecommons.org/publicdomain/zero/1.0/",
             "creator": { "@type": "Organization", "name": "DataPeek Facts", "url": "https://datapeekfacts.com" },
-            "temporalCoverage": "2024/2026",
-            "distribution": { "@type": "DataDownload", "encodingFormat": "text/html" }
+            "temporalCoverage": String(year),
+            "distribution": { "@type": "DataDownload", "encodingFormat": "text/html", "contentUrl": `https://medcheckwize.com/state/${slug}/` }
           })
         }}
       />
@@ -99,36 +100,10 @@ export default async function StatePage({ params }: { params: Promise<{ slug: st
         </div>
       </div>
 
-      {/* Data Insights */}
-      <section className="mb-6 bg-teal-50 border border-teal-200 rounded-xl p-5">
-        <h2 className="text-lg font-bold text-teal-900 mb-3">Key Insights</h2>
-        <div className="grid sm:grid-cols-2 gap-4 text-sm">
-          <div className="flex items-start gap-2">
-            <span className="text-teal-600 mt-0.5">{spendingDiff > 0 ? '▲' : '▼'}</span>
-            <p className="text-slate-700">
-              Medicare spending in {state.state} is <strong className={spendingDiff > 0 ? 'text-red-700' : 'text-green-700'}>{Math.abs(spendingDiff).toFixed(1)}% {spendingDiff > 0 ? 'above' : 'below'}</strong> the national average of {formatCurrency(Math.round(national.avg_spending))}/capita.
-            </p>
-          </div>
-          <div className="flex items-start gap-2">
-            <span className="text-teal-600 mt-0.5">#</span>
-            <p className="text-slate-700">
-              {state.state} ranks <strong className="text-teal-700">#{affordRank} out of 50</strong> for Medicare affordability (lower spending = better rank).
-            </p>
-          </div>
-          <div className="flex items-start gap-2">
-            <span className="text-teal-600 mt-0.5">$</span>
-            <p className="text-slate-700">
-              Total monthly premiums (B + D + Medigap) average <strong>{formatCurrency(Math.round(premiumTotal))}/mo</strong>, which is {premiumTotal < avgPremiumTotal ? <span className="text-green-700 font-medium">{formatCurrency(Math.round(avgPremiumTotal - premiumTotal))} less</span> : <span className="text-red-700 font-medium">{formatCurrency(Math.round(premiumTotal - avgPremiumTotal))} more</span>} than the national average.
-            </p>
-          </div>
-          <div className="flex items-start gap-2">
-            <span className="text-teal-600 mt-0.5">%</span>
-            <p className="text-slate-700">
-              Uninsured rate of <strong>{formatPercent(state.uninsured_rate)}</strong> is {state.uninsured_rate < national.avg_uninsured ? <span className="text-green-700 font-medium">{(national.avg_uninsured - state.uninsured_rate).toFixed(1)}pp below</span> : <span className="text-red-700 font-medium">{(state.uninsured_rate - national.avg_uninsured).toFixed(1)}pp above</span>} the national average of {formatPercent(national.avg_uninsured)}.
-            </p>
-          </div>
-        </div>
-      </section>
+      <InsightBlock
+        entityName={state.state}
+        insights={getStateInsights(state, national, affordRank)}
+      />
 
       {/* Premium Details */}
       <section className="mb-6">
@@ -178,7 +153,7 @@ export default async function StatePage({ params }: { params: Promise<{ slug: st
                   </tr>
                 </thead>
                 <tbody>
-                  {procs.slice(0, 15).map((p, i) => (
+                  {procs.map((p, i) => (
                     <tr key={p.procedure_slug} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
                       <td className="px-3 py-2">
                         <a href={`/state/${slug}/${p.procedure_slug}/`} className="text-teal-600 hover:underline">{p.name}</a>
@@ -262,6 +237,8 @@ export default async function StatePage({ params }: { params: Promise<{ slug: st
         </p>
       </div>
 
+      <FeedbackButton pageId={slug} />
+
       {/* Related Data Resources */}
       <section className="mt-8 p-4 bg-slate-50 rounded-lg">
         <h3 className="text-sm font-semibold text-slate-500 mb-2">Related Data Resources</h3>
@@ -272,6 +249,9 @@ export default async function StatePage({ params }: { params: Promise<{ slug: st
       </section>
 
       <FAQ items={faqs} />
+
+      <StateRich slug={slug} state={state} />
+
     </>
   );
 }

@@ -3,15 +3,24 @@ import { notFound } from 'next/navigation';
 import { getAllProcedureSlugs, getProcedureBySlug, getProcedureByState, getRelatedProcedures } from '@/lib/db';
 import { formatCurrency, getDataYear, categoryLabel } from '@/lib/format';
 import { breadcrumbSchema, faqSchema, generateProcedureFAQs } from '@/lib/schema';
+import { generateAutoFaqs } from '@/lib/auto-faqs';
 import { Breadcrumb } from '@/components/Breadcrumb';
 import { AdSlot } from '@/components/AdSlot';
 import { FAQ } from '@/components/FAQ';
 import { AuthorBox } from '@/components/AuthorBox';
 import { ProcedureCostBar } from '@/components/ProcedureCostBar';
 import { MedicareCostCalculator } from '@/components/MedicareCostCalculator';
+import { OutOfPocketEstimator } from '@/components/tools/OutOfPocketEstimator';
+import { AnswerHero } from '@/components/upgrades/AnswerHero';
+import { TrustBlock } from '@/components/upgrades/TrustBlock';
+import { InsightBlock } from '@/components/upgrades/InsightBlock';
+import { DecisionNext } from '@/components/upgrades/DecisionNext';
+import { RelatedEntities } from '@/components/upgrades/RelatedEntities';
+import { TableOfContents } from '@/components/upgrades/TableOfContents';
+import { generateInsights } from '@/lib/insights';
 
-export const dynamicParams = false;
-export const revalidate = false;
+export const dynamicParams = true;
+export const revalidate = 86400;
 
 export async function generateStaticParams() {
   return getAllProcedureSlugs().map(p => ({ slug: p.slug }));
@@ -36,7 +45,9 @@ export default async function ProcedurePage({ params }: { params: Promise<{ slug
 
   const year = getDataYear();
   const stateData = getProcedureByState(slug);
-  const faqs = generateProcedureFAQs(proc);
+  const baseFaqs = generateProcedureFAQs(proc);
+  const autoFaqs = generateAutoFaqs(proc, stateData);
+  const faqs = [...baseFaqs, ...autoFaqs];
 
   const cheapest = stateData[stateData.length - 1];
   const mostExpensive = stateData[0];
@@ -52,8 +63,33 @@ export default async function ProcedurePage({ params }: { params: Promise<{ slug
 
       <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Procedures' }, { label: proc.name }]} />
 
-      <h1 className="text-3xl font-bold mb-2">{proc.name} Cost with Medicare ({year})</h1>
-      <p className="text-slate-600 mb-6">{proc.description}</p>
+      <AnswerHero
+        title={`${proc.name} cost with Medicare`}
+        subtitle={`${categoryLabel(proc.category)} · ${year}`}
+        tagline={`${proc.description} National average cost: ${formatCurrency(proc.national_avg_cost)}. Medicare typically pays ${formatCurrency(proc.medicare_pays)}; Medicare beneficiaries are responsible for approximately ${formatCurrency(proc.patient_pays)} after Part B deductible and coinsurance, unless covered by Medicare Advantage or supplemental insurance.`}
+        badges={[
+          { label: categoryLabel(proc.category), tone: "indigo" as const },
+          { label: `Medicare data ${year}`, tone: "slate" as const },
+        ]}
+        alternatives={[]}
+      />
+
+      <TrustBlock
+        sources={[
+          { name: "CMS Medicare Physician Fee Schedule", url: "https://www.cms.gov/medicare/payment/fee-schedules/physician" },
+          { name: "Medicare.gov Procedure Cost", url: "https://www.medicare.gov/care-compare/" },
+          { name: "CMS Hospital Outpatient Pricing", url: "https://www.cms.gov/medicare/payment/prospective-payment-systems/hospital-outpatient" },
+          { name: "AMA CPT Code Lookup", url: "https://www.ama-assn.org/practice-management/cpt" },
+          { name: "Medicare Coverage Database (NCD/LCD)", url: "https://www.cms.gov/medicare-coverage-database/" },
+        ]}
+        updated={`CMS ${year} fee schedules, refreshed annually`}
+      />
+
+      <InsightBlock entityName={proc.name} insights={generateInsights(proc, stateData)} />
+
+      <TableOfContents />
+
+      <p className="sr-only">{proc.name} Cost with Medicare ({year}) — {proc.description}</p>
 
       {/* National Overview */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
@@ -97,6 +133,11 @@ export default async function ProcedurePage({ params }: { params: Promise<{ slug
 
       <AdSlot id="procedure-mid" />
 
+      <OutOfPocketEstimator
+        procedureName={proc.name}
+        nationalAvgCost={proc.national_avg_cost}
+      />
+
       <MedicareCostCalculator />
 
       <ProcedureCostBar
@@ -136,23 +177,101 @@ export default async function ProcedurePage({ params }: { params: Promise<{ slug
         </div>
       </section>
 
-      {(() => {
-        const related = getRelatedProcedures(proc.category, slug, 6);
-        if (!related.length) return null;
-        return (
-          <section className="mt-8">
-            <h2 className="text-xl font-bold mb-3">Related {categoryLabel(proc.category)} Procedures</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {related.map(r => (
-                <a key={r.slug} href={`/procedure/${r.slug}/`} className="block p-3 border rounded-lg hover:bg-teal-50 text-sm">
-                  <span className="font-medium text-teal-700">{r.name}</span>
-                  <span className="block text-slate-500 mt-1">{formatCurrency(r.national_avg_cost)} avg</span>
-                </a>
-              ))}
-            </div>
-          </section>
-        );
-      })()}
+      <RelatedEntities
+        entityName={proc.name}
+        items={getRelatedProcedures(proc.category, slug, 8).map(r => ({
+          name: r.name,
+          href: `/procedure/${r.slug}/`,
+          stat: formatCurrency(r.national_avg_cost),
+        }))}
+        heading={`Related ${categoryLabel(proc.category)} Procedures`}
+        statLabel="Avg Cost"
+      />
+
+      {/* Why this matters — US Medicare beneficiary context */}
+      <section className="mb-8 mt-6" data-upgrade="why-it-matters">
+        <h2 className="text-xl font-bold mb-3">
+          Why {proc.name} Medicare cost matters
+        </h2>
+        <div className="rounded-lg border border-slate-200 bg-white p-5 text-slate-700 leading-relaxed space-y-3">
+          <p>
+            Medicare covers about 65 million Americans (mostly people
+            65+ and people with certain disabilities). For Medicare
+            beneficiaries, the question with any procedure isn&apos;t
+            &ldquo;what does it cost?&rdquo; in the abstract &mdash;
+            it&apos;s &ldquo;how much will <em>I</em> pay after
+            Medicare?&rdquo; That depends on which Medicare program
+            (Original Medicare vs Medicare Advantage), whether the
+            provider accepts assignment, and whether the patient has
+            Medigap supplemental insurance.
+          </p>
+          <p>
+            Under Original Medicare Part B, after meeting the annual
+            deductible (${257} for 2025), Medicare typically pays 80%
+            of the approved amount and the patient pays 20%
+            coinsurance. There&apos;s no annual out-of-pocket maximum
+            on Original Medicare, which is why most beneficiaries buy
+            Medigap (Medicare Supplement) insurance to cap their
+            exposure.
+          </p>
+          <p>
+            Medicare Advantage (Part C) plans have different cost
+            structures &mdash; usually copays instead of coinsurance,
+            with annual out-of-pocket maximums. The trade-off is
+            network restrictions: Medicare Advantage uses HMO/PPO
+            networks while Original Medicare lets you see any
+            provider that accepts Medicare assignment.
+          </p>
+          <p>
+            For an actual procedure decision: (1) confirm your
+            provider accepts Medicare assignment, (2) check the{" "}
+            <a
+              href="https://www.medicare.gov/care-compare/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+            >
+              Medicare.gov procedure cost lookup
+            </a>{" "}
+            for your specific zip code, and (3) ask the
+            provider&apos;s billing office for an itemized estimate
+            in writing before the procedure.
+          </p>
+          <p className="text-sm text-slate-500">
+            Sources: CMS Medicare Physician Fee Schedule, CMS
+            Hospital Outpatient Prospective Payment System,
+            Medicare.gov procedure cost lookup, AMA CPT codes. Not
+            affiliated with CMS or Medicare. For your specific
+            coverage, contact 1-800-MEDICARE or your plan directly.
+          </p>
+        </div>
+      </section>
+
+      <DecisionNext
+        cards={[
+          {
+            title: `Medicare.gov Care Compare`,
+            blurb: `Look up your specific procedure cost for your ZIP code on the official Medicare.gov tool.`,
+            href: `https://www.medicare.gov/care-compare/`,
+            cta: `Open Medicare.gov`,
+            tone: "indigo" as const,
+          },
+          {
+            title: `Healthcare costs by city`,
+            blurb: `Hospital prices vary dramatically by city for non-Medicare patients.`,
+            href: `https://medcostpeek.com`,
+            cta: `Open MedCostPeek`,
+            tone: "emerald" as const,
+          },
+          {
+            title: `Medicare physician fee schedule`,
+            blurb: `The official CMS database of approved amounts for every covered procedure.`,
+            href: `https://www.cms.gov/medicare/payment/fee-schedules/physician`,
+            cta: `Open CMS PFS`,
+            tone: "amber" as const,
+          },
+        ]}
+      />
 
       <AuthorBox />
 

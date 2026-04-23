@@ -3,18 +3,18 @@ import { notFound } from 'next/navigation';
 import { getStateProcedureDetail, getAllStateProcedurePairs } from '@/lib/db';
 import { formatCurrency, getDataYear } from '@/lib/format';
 
-export const dynamicParams = false;
-export const revalidate = false;
+export const dynamicParams = true;
+export const revalidate = 86400;
 
 export async function generateStaticParams() {
-  return getAllStateProcedurePairs().slice(0, 20).map(sp => ({
-    state: sp.state_slug,
+  return getAllStateProcedurePairs().map(sp => ({
+    slug: sp.state_slug,
     procedure: sp.procedure_slug,
   }));
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ state: string; procedure: string }> }): Promise<Metadata> {
-  const { state: stateSlug, procedure: procSlug } = await params;
+export async function generateMetadata({ params }: { params: Promise<{ slug: string; procedure: string }> }): Promise<Metadata> {
+  const { slug: stateSlug, procedure: procSlug } = await params;
   const data = getStateProcedureDetail(stateSlug, procSlug);
   if (!data) return {};
   const { state, procedure, stateProcedure } = data;
@@ -29,8 +29,8 @@ export async function generateMetadata({ params }: { params: Promise<{ state: st
   };
 }
 
-export default async function StateProcedurePageEs({ params }: { params: Promise<{ state: string; procedure: string }> }) {
-  const { state: stateSlug, procedure: procSlug } = await params;
+export default async function StateProcedurePageEs({ params }: { params: Promise<{ slug: string; procedure: string }> }) {
+  const { slug: stateSlug, procedure: procSlug } = await params;
   const data = getStateProcedureDetail(stateSlug, procSlug);
   if (!data) notFound();
 
@@ -82,7 +82,7 @@ export default async function StateProcedurePageEs({ params }: { params: Promise
         <div className="text-sm">
           <span className="font-medium">{procedure.name}</span> en {state.state} cuesta{' '}
           <span className={`font-bold ${diff > 0 ? 'text-red-600' : 'text-green-600'}`}>
-            {formatCurrency(Math.abs(diff))} {diff > 0 ? 'm\u00e1s' : 'menos'}
+            {formatCurrency(Math.abs(diff))} {diff > 0 ? 'más' : 'menos'}
           </span>{' '}
           que el promedio nacional ({diffPct}%). Promedio nacional: {formatCurrency(procedure.national_avg_cost)}.
         </div>

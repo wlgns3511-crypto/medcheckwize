@@ -11,32 +11,55 @@ import { DidYouKnow } from '@/components/DidYouKnow';
 import { DataSourceBadge } from '@/components/DataSourceBadge';
 import { CrossSiteLinks } from '@/components/CrossSiteLinks';
 
-export const dynamicParams = false;
-export const revalidate = false;
+export const dynamicParams = true;
+export const revalidate = 86400;
 
 export async function generateStaticParams() {
   // Pre-render a subset for ISR
-  return getAllStateProcedurePairs().slice(0, 500).map(sp => ({
-    state: sp.state_slug,
+  return getAllStateProcedurePairs().map(sp => ({
+    slug: sp.state_slug,
     procedure: sp.procedure_slug,
   }));
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ state: string; procedure: string }> }): Promise<Metadata> {
-  const { state: stateSlug, procedure: procSlug } = await params;
+export async function generateMetadata({ params }: { params: Promise<{ slug: string; procedure: string }> }): Promise<Metadata> {
+  const { slug: stateSlug, procedure: procSlug } = await params;
   const data = getStateProcedureDetail(stateSlug, procSlug);
   if (!data) return {};
-  const { state, procedure, stateProcedure } = data;
+  const { state, procedure, stateProcedure, allStates } = data;
+  const cost = stateProcedure.avg_cost;
+  const year = getDataYear();
+
+  // Peer: same-procedure different state with meaningfully different cost
+  const peers = allStates.filter((s) => s.state !== state.abbr);
+  const peer = peers.find((p) => {
+    const d = Math.abs((p.avg_cost - cost) / Math.max(cost, 1));
+    return d > 0.05 && d < 0.8;
+  }) || peers[0];
+
+  let title: string;
+  let description: string;
+  if (peer) {
+    const pct = Math.round(((peer.avg_cost - cost) / Math.max(peer.avg_cost, 1)) * 100);
+    const absPct = Math.abs(pct);
+    const dir = pct > 0 ? 'cheaper' : 'pricier';
+    title = `${procedure.name} Cost in ${state.state} ${year}: ${formatCurrency(cost)} vs ${peer.state_name} ${formatCurrency(peer.avg_cost)}`;
+    description = `${procedure.name} in ${state.state} costs ${formatCurrency(cost)} — ${absPct}% ${dir} than ${peer.state_name}. Medicare pays ${formatCurrency(stateProcedure.medicare_pays)}, you pay ${formatCurrency(stateProcedure.patient_pays)}. National avg ${formatCurrency(procedure.national_avg_cost)}. ${year} data.`;
+  } else {
+    title = `${procedure.name} Cost in ${state.state} ${year}: ${formatCurrency(cost)} — Medicare Coverage`;
+    description = `${procedure.name} in ${state.state}: ${formatCurrency(cost)}. Medicare pays ${formatCurrency(stateProcedure.medicare_pays)}, you pay ${formatCurrency(stateProcedure.patient_pays)}. National avg ${formatCurrency(procedure.national_avg_cost)}. ${year} data.`;
+  }
+
   return {
-    title: `${procedure.name} Cost in ${state.state} - Medicare Coverage ${getDataYear()}`,
-    description: `${procedure.name} costs ${formatCurrency(stateProcedure.avg_cost)} in ${state.state}. Medicare pays ${formatCurrency(stateProcedure.medicare_pays)}, you pay ${formatCurrency(stateProcedure.patient_pays)}.`,
+    title,
+    description,
     alternates: { canonical: `/state/${stateSlug}/${procSlug}/` },
-    openGraph: { url: `/state/${stateSlug}/${procSlug}/` },
+    openGraph: { title, description, url: `/state/${stateSlug}/${procSlug}/` },
   };
 }
 
-export default async function StateProcedurePage({ params }: { params: Promise<{ state: string; procedure: string }> }) {
-  const { state: stateSlug, procedure: procSlug } = await params;
+export default async function StateProcedurePage({ params }: { params: Promise<{ slug: string; procedure: string }> }) {
+  const { slug: stateSlug, procedure: procSlug } = await params;
   const data = getStateProcedureDetail(stateSlug, procSlug);
   if (!data) notFound();
 
@@ -57,12 +80,10 @@ export default async function StateProcedurePage({ params }: { params: Promise<{
           { name: state.state, url: `/state/${state.slug}/` },
           { name: procedure.name, url: `/state/${stateSlug}/${procSlug}/` },
         ]),
-        dateModified: "2026-03-31",
         author: { "@type": "Organization", name: "DataPeek" },
       }) }} />
       {faqs.length > 0 && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
         ...faqSchema(faqs),
-        dateModified: "2026-03-31",
         author: { "@type": "Organization", name: "DataPeek" },
       }) }} />}
 

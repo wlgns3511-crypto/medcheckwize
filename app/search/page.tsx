@@ -5,6 +5,7 @@ import { formatCurrency, categoryLabel } from '@/lib/format';
 export const metadata: Metadata = {
   title: 'Search Medicare Procedure Costs - Find What Medicare Pays',
   description: 'Search Medicare procedure costs by name or category. Find out what Medicare pays and your out-of-pocket costs for 100+ medical procedures across all 50 states.',
+  robots: { index: false, follow: true },
   alternates: { canonical: '/search/' },
   openGraph: { url: "/search/" },
 };
@@ -24,7 +25,7 @@ export default async function SearchPage({ searchParams }: Props) {
 
   const results = query.length >= 2 ? searchProcedures(query, 30) : [];
   const categories = getProcedureCategories();
-  const featuredProcedures = !query ? getAllProcedures().slice(0, 12) : [];
+  const featuredProcedures = !query ? getAllProcedures() : [];
 
   return (
     <div className="max-w-3xl mx-auto">
