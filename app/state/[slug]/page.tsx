@@ -15,6 +15,8 @@ import { FeedbackButton } from '@/components/FeedbackButton';
 import { InsightBlock } from '@/components/upgrades/InsightBlock';
 import { getStateInsights } from '@/lib/insights';
 import { StateRich } from '@/components/state/StateRich';
+import { getStateFactsByAbbr } from '@/lib/state-facts';
+import { getStateCommentary } from '@/lib/state-commentary';
 
 export const dynamicParams = false;
 export const revalidate = 86400;
@@ -45,6 +47,8 @@ export default async function StatePage({ params }: { params: Promise<{ slug: st
   const faqs = generateStateFAQs(state);
   const national = getNationalStats();
   const affordRank = getAffordabilityRank(state.abbr);
+  const stateFacts = getStateFactsByAbbr(state.abbr);
+  const commentary = stateFacts ? getStateCommentary(stateFacts) : null;
 
   // Group procedures by category
   const grouped: Record<string, typeof procedures> = {};
@@ -101,6 +105,15 @@ export default async function StatePage({ params }: { params: Promise<{ slug: st
           <div className="text-xs text-slate-500">Uninsured Rate</div>
         </div>
       </div>
+
+      {commentary && (
+        <section className="mb-6 space-y-2 text-sm text-slate-700 leading-relaxed">
+          <p>{commentary.spendingSummary}</p>
+          <p>{commentary.maMixSummary}</p>
+          <p>{commentary.medigapAffordability}</p>
+          <p>{commentary.coverageGap}</p>
+        </section>
+      )}
 
       <InsightBlock
         entityName={state.state}
@@ -240,6 +253,56 @@ export default async function StatePage({ params }: { params: Promise<{ slug: st
       </section>
 
       <FAQ items={faqs} />
+
+      {stateFacts && (
+        <section className="mt-8 p-4 border border-slate-200 rounded-lg bg-white text-xs text-slate-600">
+          <h3 className="text-sm font-semibold text-slate-700 mb-3">
+            Data sources &amp; vintage for {state.state}
+          </h3>
+          <ul className="space-y-1 list-disc list-inside">
+            <li>
+              <strong>Medicare beneficiaries</strong> ({formatNumber(stateFacts.medicare_enrollees)}):
+              CMS Medicare Monthly Enrollment, {stateFacts.medicare_enrollees_year} Year aggregation
+              ({formatNumber(stateFacts.medicare_original_benes)} Original Medicare,{" "}
+              {formatNumber(stateFacts.medicare_advantage_benes)} MA &amp; other).
+            </li>
+            <li>
+              <strong>Per-capita Medicare spending</strong> ({formatCurrency(stateFacts.avg_medicare_spending_per_capita)}):
+              CMS Medicare Geographic Variation by State, {stateFacts.avg_medicare_spending_year}
+              {" "}(latest released).
+            </li>
+            <li>
+              <strong>Part B premium</strong> (${stateFacts.part_b_premium.toFixed(2)}/mo): federal
+              flat rate, {stateFacts.part_b_premium_year} CMS schedule.
+            </li>
+            <li>
+              <strong>Medicaid &amp; CHIP enrollees</strong> ({formatNumber(stateFacts.medicaid_enrollees)}):
+              KFF analysis of CMS Performance Indicator data, September {stateFacts.medicaid_enrollees_year}.
+            </li>
+            <li>
+              <strong>Medicaid expansion status</strong>: KFF tracker (December 2024).
+            </li>
+            <li>
+              <strong>Part D average premium</strong> ({formatCurrency(stateFacts.part_d_premium_avg)}/mo):
+              KFF analysis of CMS Part D plan landscape, {stateFacts.part_d_premium_avg_year}
+              {" "}weighted PDP.
+            </li>
+            <li>
+              <strong>Medigap average premium</strong> ({formatCurrency(stateFacts.medigap_avg_premium)}/mo):
+              KFF analysis of CMS Medigap rate filings, {stateFacts.medigap_avg_premium_year}{" "}
+              (Plan G, age 65 baseline).
+            </li>
+            <li>
+              <strong>Uninsured rate</strong> ({formatPercent(stateFacts.uninsured_rate)}):
+              U.S. Census Bureau ACS 1-Year Estimates, {stateFacts.uninsured_rate_year}.
+            </li>
+          </ul>
+          <p className="mt-3">
+            See <a href="/methodology/" className="text-teal-700 hover:underline">methodology</a>{" "}
+            for cost figure sources, payment system details, and known limitations.
+          </p>
+        </section>
+      )}
 
       <StateRich slug={slug} state={state} />
 

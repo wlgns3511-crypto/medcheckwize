@@ -19,6 +19,88 @@ import { RelatedEntities } from '@/components/upgrades/RelatedEntities';
 import { TableOfContents } from '@/components/upgrades/TableOfContents';
 import { generateInsights } from '@/lib/insights';
 
+const TRUST_SOURCE_INPATIENT = { name: "CMS Medicare Inpatient Hospitals by Geography & Service", url: "https://data.cms.gov/provider-summary-by-type-of-service/medicare-inpatient-hospitals/medicare-inpatient-hospitals-by-geography-and-service" };
+const TRUST_SOURCE_PFS = { name: "CMS Medicare Physician & Other Practitioners by Geography & Service", url: "https://data.cms.gov/provider-summary-by-type-of-service/medicare-physician-other-practitioners/medicare-physician-other-practitioners-by-geography-and-service" };
+const TRUST_SOURCE_HOPPS = { name: "CMS Medicare Outpatient Hospitals by Geography & Service", url: "https://data.cms.gov/provider-summary-by-type-of-service/medicare-outpatient-hospitals/medicare-outpatient-hospitals-by-geography-and-service" };
+const TRUST_SOURCE_CLFS = { name: "CMS Clinical Laboratory Fee Schedule", url: "https://www.cms.gov/medicare/payment/fee-schedules/clinical-laboratory-fee-schedule-clfs-files" };
+const TRUST_SOURCE_DRG_MANUAL = { name: "CMS FY 2024 MS-DRG Definition Manual", url: "https://www.cms.gov/medicare/payment/prospective-payment-systems/acute-inpatient-pps" };
+const TRUST_SOURCE_CARE_COMPARE = { name: "Medicare.gov Care Compare", url: "https://www.medicare.gov/care-compare/" };
+const TRUST_SOURCE_COVERAGE_DB = { name: "Medicare Coverage Database (NCD/LCD)", url: "https://www.cms.gov/medicare-coverage-database/" };
+
+function trustBlockSources(category: string) {
+  if (category === "hospital") {
+    return [TRUST_SOURCE_INPATIENT, TRUST_SOURCE_DRG_MANUAL, TRUST_SOURCE_CARE_COMPARE, TRUST_SOURCE_COVERAGE_DB];
+  }
+  if (category === "lab") {
+    return [TRUST_SOURCE_CLFS, TRUST_SOURCE_PFS, TRUST_SOURCE_CARE_COMPARE, TRUST_SOURCE_COVERAGE_DB];
+  }
+  if (category === "outpatient") {
+    return [TRUST_SOURCE_PFS, TRUST_SOURCE_HOPPS, TRUST_SOURCE_CARE_COMPARE, TRUST_SOURCE_COVERAGE_DB];
+  }
+  // imaging / physician
+  return [TRUST_SOURCE_PFS, TRUST_SOURCE_HOPPS, TRUST_SOURCE_CARE_COMPARE, TRUST_SOURCE_COVERAGE_DB];
+}
+
+function trustBlockVintage(category: string, year: number) {
+  if (category === "hospital") return `CMS Inpatient ${year - 1} Geography & Service data, refreshed annually`;
+  if (category === "lab") return `CMS Clinical Laboratory Fee Schedule ${year}, uniform national rates`;
+  return `CMS PFS / HOPPS ${year} fee schedules, refreshed annually`;
+}
+
+function answerTagline(proc: { name: string; description: string; category: string; national_avg_cost: number; medicare_pays: number; patient_pays: number }) {
+  const cost = formatCurrency(proc.national_avg_cost);
+  const paid = formatCurrency(proc.medicare_pays);
+  const pat = formatCurrency(proc.patient_pays);
+  if (proc.category === "hospital") {
+    return `MS-DRG bundled payment averages ${cost} per discharge; Medicare pays ${paid}, with beneficiary cost driven by Part A deductible per benefit period.`;
+  }
+  if (proc.category === "lab") {
+    return `Clinical Laboratory Fee Schedule rate is ${cost} (uniform nationally). Section 1833 exempts Part B labs — patient cost is $0.`;
+  }
+  if (proc.patient_pays === 0) {
+    return `Medicare allows ${cost} and pays the full ${paid} when billed as a covered preventive service — patient cost is $0.`;
+  }
+  return `Medicare allowed amount averages ${cost}; Part B pays ${paid} after deductible, beneficiary share ≈ ${pat} (Medigap or MA caps exposure).`;
+}
+
+function whyItMattersCopy(category: string) {
+  if (category === "hospital") {
+    return {
+      paragraphs: [
+        "Inpatient hospital stays under Original Medicare are paid through Part A using the MS-DRG (Medicare Severity Diagnosis Related Group) bundled payment system. The hospital receives one bundled payment based on the patient's primary diagnosis and procedures performed — not separate fees per service. The averages on this page reflect that hospital-level payment, not the beneficiary's bill.",
+        "Beneficiary cost-sharing under Part A is structured by benefit period rather than by procedure. The 2025 Part A inpatient deductible is $1,676 per benefit period, with daily coinsurance starting on day 61 ($419/day in 2025). Most short stays for a single MS-DRG fall within a single deductible.",
+        "Medicare Advantage plans handle inpatient stays differently — typically with per-day copays for the first several days, capped by the plan's annual out-of-pocket maximum. Original Medicare has no annual out-of-pocket cap, which is why most Original Medicare beneficiaries pair it with a Medigap policy.",
+      ],
+    };
+  }
+  if (category === "lab") {
+    return {
+      paragraphs: [
+        "Clinical laboratory tests covered under Medicare Part B are paid at the rates set by the Clinical Laboratory Fee Schedule (CLFS). These rates are nationally uniform — they do not vary by state — and are updated periodically using private-payer pricing data under PAMA.",
+        "Medicare beneficiaries pay $0 out of pocket for covered Part B lab tests when ordered by a Medicare-enrolled provider and processed by a Medicare-participating lab. Section 1833 of the Social Security Act statutorily exempts clinical lab services from both the Part B deductible and the 20% coinsurance.",
+        "What can still be charged: tests ordered for a non-covered indication (screening tests outside Medicare's preventive coverage rules), tests not on the CLFS, or labs that don't accept Medicare assignment. Always confirm coverage rules in the Medicare Coverage Database (NCD/LCD) for the specific test code.",
+      ],
+    };
+  }
+  if (category === "outpatient") {
+    return {
+      paragraphs: [
+        "Hospital outpatient procedures (including most same-day surgeries done in a hospital outpatient department) are paid through two separate Medicare systems: the Hospital Outpatient Prospective Payment System (HOPPS) for the facility fee, and the Physician Fee Schedule (PFS) for the surgeon's professional fee. The numbers on this page combine both.",
+        "Beneficiary cost-sharing under Original Medicare Part B is the annual deductible ($257 in 2025) plus 20% coinsurance on the Medicare-approved amount, with no annual out-of-pocket maximum. The same procedure performed in an Ambulatory Surgical Center (ASC) is paid under a different schedule and may carry lower cost-sharing.",
+        "Medicare Advantage plans typically use fixed copays for outpatient surgery, with annual out-of-pocket maximums protecting beneficiaries from large coinsurance bills. Coverage rules and prior authorization requirements vary by plan.",
+      ],
+    };
+  }
+  // imaging / physician / preventive / pharmacy
+  return {
+    paragraphs: [
+      "Most physician services and outpatient diagnostic imaging are paid under Medicare Part B using the Physician Fee Schedule (PFS). State-level variation in this page reflects the Geographic Practice Cost Index (GPCI), which adjusts payments for local costs of practice.",
+      "Beneficiary cost-sharing is the annual Part B deductible ($257 in 2025) plus 20% coinsurance on the Medicare-approved amount. There is no annual out-of-pocket maximum on Original Medicare Part B; most beneficiaries pair it with Medigap to cap exposure.",
+      "Medicare Advantage plans typically use copays instead of percentage coinsurance and impose an annual out-of-pocket maximum. The trade-off is network restrictions and prior authorization on certain imaging procedures.",
+    ],
+  };
+}
+
 export const dynamicParams = false;
 export const revalidate = 86400;
 
@@ -66,7 +148,7 @@ export default async function ProcedurePage({ params }: { params: Promise<{ slug
       <AnswerHero
         title={`${proc.name} cost with Medicare`}
         subtitle={`${categoryLabel(proc.category)} · ${year}`}
-        tagline={`${proc.description} National average cost: ${formatCurrency(proc.national_avg_cost)}. Medicare typically pays ${formatCurrency(proc.medicare_pays)}; Medicare beneficiaries are responsible for approximately ${formatCurrency(proc.patient_pays)} after Part B deductible and coinsurance, unless covered by Medicare Advantage or supplemental insurance.`}
+        tagline={answerTagline(proc)}
         badges={[
           { label: categoryLabel(proc.category), tone: "indigo" as const },
           { label: `Medicare data ${year}`, tone: "slate" as const },
@@ -75,14 +157,8 @@ export default async function ProcedurePage({ params }: { params: Promise<{ slug
       />
 
       <TrustBlock
-        sources={[
-          { name: "CMS Medicare Physician Fee Schedule", url: "https://www.cms.gov/medicare/payment/fee-schedules/physician" },
-          { name: "Medicare.gov Procedure Cost", url: "https://www.medicare.gov/care-compare/" },
-          { name: "CMS Hospital Outpatient Pricing", url: "https://www.cms.gov/medicare/payment/prospective-payment-systems/hospital-outpatient" },
-          { name: "AMA CPT Code Lookup", url: "https://www.ama-assn.org/practice-management/cpt" },
-          { name: "Medicare Coverage Database (NCD/LCD)", url: "https://www.cms.gov/medicare-coverage-database/" },
-        ]}
-        updated={`CMS ${year} fee schedules, refreshed annually`}
+        sources={trustBlockSources(proc.category)}
+        updated={trustBlockVintage(proc.category, year)}
       />
 
       <InsightBlock entityName={proc.name} insights={generateInsights(proc, stateData)} />
@@ -196,37 +272,11 @@ export default async function ProcedurePage({ params }: { params: Promise<{ slug
           Why {proc.name} Medicare cost matters
         </h2>
         <div className="rounded-lg border border-slate-200 bg-white p-5 text-slate-700 leading-relaxed space-y-3">
+          {whyItMattersCopy(proc.category).paragraphs.map((p, i) => (
+            <p key={i}>{p}</p>
+          ))}
           <p>
-            Medicare covers about 65 million Americans (mostly people
-            65+ and people with certain disabilities). For Medicare
-            beneficiaries, the question with any procedure isn&apos;t
-            &ldquo;what does it cost?&rdquo; in the abstract &mdash;
-            it&apos;s &ldquo;how much will <em>I</em> pay after
-            Medicare?&rdquo; That depends on which Medicare program
-            (Original Medicare vs Medicare Advantage), whether the
-            provider accepts assignment, and whether the patient has
-            Medigap supplemental insurance.
-          </p>
-          <p>
-            Under Original Medicare Part B, after meeting the annual
-            deductible (${257} for 2025), Medicare typically pays 80%
-            of the approved amount and the patient pays 20%
-            coinsurance. There&apos;s no annual out-of-pocket maximum
-            on Original Medicare, which is why most beneficiaries buy
-            Medigap (Medicare Supplement) insurance to cap their
-            exposure.
-          </p>
-          <p>
-            Medicare Advantage (Part C) plans have different cost
-            structures &mdash; usually copays instead of coinsurance,
-            with annual out-of-pocket maximums. The trade-off is
-            network restrictions: Medicare Advantage uses HMO/PPO
-            networks while Original Medicare lets you see any
-            provider that accepts Medicare assignment.
-          </p>
-          <p>
-            For an actual procedure decision: (1) confirm your
-            provider accepts Medicare assignment, (2) check the{" "}
+            For an actual procedure decision: (1) confirm your provider accepts Medicare assignment, (2) check the{" "}
             <a
               href="https://www.medicare.gov/care-compare/"
               target="_blank"
@@ -235,16 +285,19 @@ export default async function ProcedurePage({ params }: { params: Promise<{ slug
             >
               Medicare.gov procedure cost lookup
             </a>{" "}
-            for your specific zip code, and (3) ask the
-            provider&apos;s billing office for an itemized estimate
-            in writing before the procedure.
+            for your specific zip code, and (3) ask the provider&apos;s billing office for an itemized estimate in writing before the procedure. Coverage rules for any specific test or procedure are authoritative in the{" "}
+            <a
+              href="https://www.cms.gov/medicare-coverage-database/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+            >
+              Medicare Coverage Database (NCD/LCD)
+            </a>
+            .
           </p>
           <p className="text-sm text-slate-500">
-            Sources: CMS Medicare Physician Fee Schedule, CMS
-            Hospital Outpatient Prospective Payment System,
-            Medicare.gov procedure cost lookup, AMA CPT codes. Not
-            affiliated with CMS or Medicare. For your specific
-            coverage, contact 1-800-MEDICARE or your plan directly.
+            Sources: see <a href="/methodology/" className="underline">methodology</a> for the full list of CMS payment systems used on this page. Not affiliated with CMS or Medicare. For your specific coverage, contact 1-800-MEDICARE or your plan directly.
           </p>
         </div>
       </section>

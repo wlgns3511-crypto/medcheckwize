@@ -26,8 +26,9 @@ export default function AboutPage() {
 
       <h2 className="text-2xl font-bold text-slate-900 mt-10 mb-4">What this site contains</h2>
       <ul>
-        <li>Medicare-allowed amounts for common procedures and services, by CPT/HCPCS code.</li>
-        <li>Hospital outpatient and physician-office payment breakdowns under Medicare payment systems.</li>
+        <li>Medicare allowed and paid amounts for 160 common procedures and services, mapped to MS-DRG, HCPCS, or CPT codes — drawn from four CMS payment systems (Inpatient by Geography, Physician Fee Schedule, Hospital Outpatient PPS, and Clinical Laboratory Fee Schedule).</li>
+        <li>State-by-state cost variation for those procedures, where CMS publishes the data (small-cell suppression rules apply — fewer than 11 services or discharges are not published).</li>
+        <li>State-level Medicare and Medicaid context: enrollment counts, per-capita Medicare spending, average Part D and Medigap premiums, Medicaid expansion status, and uninsured rates — sourced from CMS, KFF, and the Census Bureau ACS.</li>
         <li>Plain-language context on Original Medicare vs. Medicare Advantage and how assignment affects the patient&apos;s share.</li>
       </ul>
 
@@ -35,20 +36,40 @@ export default function AboutPage() {
       <p>Every figure on MedCheckWize traces back to one of these public sources:</p>
       <ul>
         <li>
-          <strong>CMS Medicare Physician Fee Schedule (PFS)</strong> &mdash; the federal database
-          that sets what Medicare pays for covered physician services, updated annually.
+          <strong>CMS Inpatient Hospitals by Geography &amp; Service</strong> &mdash; MS-DRG-bundled
+          payments for the 30 inpatient procedures we cover.
         </li>
         <li>
-          <strong>Medicare.gov Care Compare</strong> &mdash; the official CMS consumer tool for
-          looking up procedure costs and finding providers.
+          <strong>CMS Medicare Physician Fee Schedule (PFS Geography)</strong> &mdash; the
+          per-HCPCS allowed and paid amounts for physician, office, and imaging services.
         </li>
         <li>
-          <strong>CMS Hospital Outpatient Prospective Payment System (OPPS)</strong> &mdash; the
-          federal payment system for hospital outpatient procedures.
+          <strong>CMS Hospital Outpatient Prospective Payment System (HOPPS / APC)</strong> &mdash;
+          facility-fee component combined with PFS for outpatient surgical procedures.
         </li>
         <li>
-          <strong>Medicare Coverage Database</strong> &mdash; official CMS determinations on what
-          Medicare covers and under what conditions.
+          <strong>CMS Clinical Laboratory Fee Schedule (CLFS)</strong> &mdash; uniform national
+          rates for the 30 lab tests we cover, with the statutory $0 patient cost-share.
+        </li>
+        <li>
+          <strong>CMS Medicare Monthly Enrollment</strong> &mdash; state-level beneficiary counts
+          (Original Medicare + Medicare Advantage), 2025 annual aggregation.
+        </li>
+        <li>
+          <strong>CMS Medicare Geographic Variation</strong> &mdash; state-level per-capita
+          Medicare spending, latest released year (2023).
+        </li>
+        <li>
+          <strong>KFF</strong> &mdash; Medicaid &amp; CHIP enrollment, Medicaid expansion status,
+          Part D average premium, and Medigap average premium.
+        </li>
+        <li>
+          <strong>US Census Bureau American Community Survey (ACS)</strong> &mdash; state
+          uninsured rates (under-65 civilian noninstitutionalized population).
+        </li>
+        <li>
+          <strong>Medicare.gov Care Compare &amp; Medicare Coverage Database</strong> &mdash; CMS
+          consumer tools we link to for ZIP-specific verification.
         </li>
       </ul>
       <p>
