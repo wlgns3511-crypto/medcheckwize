@@ -4,7 +4,7 @@ import { getAllPosts, getPostBySlug } from "@/lib/blog";
 import { AdSlot } from "@/components/AdSlot";
 import { AuthorBox } from "@/components/AuthorBox";
 
-export const dynamicParams = true;
+export const dynamicParams = false;
 export const revalidate = 86400;
 
 export function generateStaticParams() {
@@ -155,11 +155,12 @@ export default async function BlogPostPage({
           >
             States
           </a>
+          {/* /compare/ killed 2026-04-25 HCU Phase C — pointed at top GSC procedure */}
           <a
-            href="/compare/"
+            href="/procedure/heart-valve-replacement/"
             className="text-sm px-4 py-2 bg-white border border-teal-300 text-teal-700 rounded-lg hover:bg-teal-50 font-medium"
           >
-            Compare
+            Procedure Costs
           </a>
           <a
             href="/"

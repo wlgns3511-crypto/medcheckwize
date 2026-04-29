@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { headers } from 'next/headers';
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { UpgradeAnalytics } from "@/components/upgrades/UpgradeAnalytics";
@@ -9,18 +8,12 @@ const inter = Inter({ subsets: ["latin"], display: "swap" });
 const SITE_NAME = "MedCheckWize";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://medcheckwize.com";
 
-const ROOT_LOCALES = ['es'] as const;
-type RootLocale = (typeof ROOT_LOCALES)[number];
+// HCU Phase C 2026-04-25: /es/ subtree killed (410 via middleware).
+// Spanish mirror over identical CMS data drove 0 GSC clicks in 3 months.
 const ROOT_ALTERNATE_LANGUAGES = {
   en: `${SITE_URL}/`,
-  es: `${SITE_URL}/es/`,
   'x-default': `${SITE_URL}/`,
 } as const;
-
-function getHtmlLang(pathname: string | null): string {
-  const locale = pathname?.split('/').filter(Boolean)[0] as RootLocale | undefined;
-  return locale && ROOT_LOCALES.includes(locale) ? locale : 'en';
-}
 
 const GA_ID = "G-G835HS88W4";
 
@@ -33,18 +26,14 @@ export const metadata: Metadata = {
     "Compare Medicare and Medicaid costs, coverage, and healthcare expenses across all 50 US states. Find procedure costs, premium estimates, and coverage details.",
   metadataBase: new URL(SITE_URL),
   alternates: { languages: ROOT_ALTERNATE_LANGUAGES },
-  robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large" } },
   openGraph: { type: "website", siteName: SITE_NAME, locale: "en_US" },
   twitter: { card: "summary_large_image" },
   other: { "google-adsense-account": "ca-pub-5724806562146685" },
 };
 
-export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const headerStore = await headers();
-  const pathname = headerStore.get('x-pathname');
-  const htmlLang = getHtmlLang(pathname);
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang={htmlLang}>
+    <html lang="en">
       <head>
         <link rel="preconnect" href="https://www.googletagmanager.com" />
         <link rel="dns-prefetch" href="https://pagead2.googlesyndication.com" />
@@ -91,13 +80,12 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
             <a href="/" className="text-xl font-bold text-teal-600">{SITE_NAME}</a>
             <nav className="flex gap-6 text-sm">
+              {/* /compare/ + /es/ killed 2026-04-25 HCU Phase C */}
               <a href="/state/california/" className="hover:text-teal-600">States</a>
               <a href="/procedure/colonoscopy/" className="hover:text-teal-600">Procedures</a>
               <a href="/calculator/" className="hover:text-teal-600">Calculator</a>
-              <a href="/compare/alabama-vs-alaska/" className="hover:text-teal-600">Compare</a>
               <a href="/guide/" className="hover:text-teal-600">Guides</a>
               <a href="/blog/" className="hover:text-teal-600">Articles</a>
-              <a href="/es/" className="text-slate-400 hover:text-teal-600 text-xs">ES</a>
             </nav>
           </div>
         </header>

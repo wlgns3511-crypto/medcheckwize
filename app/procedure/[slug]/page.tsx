@@ -19,7 +19,7 @@ import { RelatedEntities } from '@/components/upgrades/RelatedEntities';
 import { TableOfContents } from '@/components/upgrades/TableOfContents';
 import { generateInsights } from '@/lib/insights';
 
-export const dynamicParams = true;
+export const dynamicParams = false;
 export const revalidate = 86400;
 
 export async function generateStaticParams() {
@@ -112,19 +112,20 @@ export default async function ProcedurePage({ params }: { params: Promise<{ slug
       </div>
 
       {/* Cost Highlights */}
+      {/* HCU Phase C 2026-04-25: state×procedure leaf killed — link to /state/ hub */}
       {cheapest && mostExpensive && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
           <div className="border border-red-100 bg-red-50 rounded-lg p-4">
             <div className="text-sm text-slate-500 mb-1">Most Expensive State</div>
             <div className="text-lg font-bold text-red-700">
-              <a href={`/state/${mostExpensive.state_slug}/${slug}/`} className="hover:underline">{mostExpensive.state_name}</a>
+              <a href={`/state/${mostExpensive.state_slug}/`} className="hover:underline">{mostExpensive.state_name}</a>
             </div>
             <div className="text-sm">{formatCurrency(mostExpensive.avg_cost)}</div>
           </div>
           <div className="border border-green-100 bg-green-50 rounded-lg p-4">
             <div className="text-sm text-slate-500 mb-1">Least Expensive State</div>
             <div className="text-lg font-bold text-green-700">
-              <a href={`/state/${cheapest.state_slug}/${slug}/`} className="hover:underline">{cheapest.state_name}</a>
+              <a href={`/state/${cheapest.state_slug}/`} className="hover:underline">{cheapest.state_name}</a>
             </div>
             <div className="text-sm">{formatCurrency(cheapest.avg_cost)}</div>
           </div>
@@ -161,11 +162,12 @@ export default async function ProcedurePage({ params }: { params: Promise<{ slug
               </tr>
             </thead>
             <tbody>
+              {/* HCU Phase C 2026-04-25: state×procedure leaf killed — link to /state/ hub */}
               {stateData.map((sp, i) => (
                 <tr key={sp.state} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
                   <td className="px-3 py-2 text-slate-400">{i + 1}</td>
                   <td className="px-3 py-2">
-                    <a href={`/state/${sp.state_slug}/${slug}/`} className="text-teal-600 hover:underline font-medium">{sp.state_name}</a>
+                    <a href={`/state/${sp.state_slug}/`} className="text-teal-600 hover:underline font-medium">{sp.state_name}</a>
                   </td>
                   <td className="px-3 py-2 text-right">{formatCurrency(sp.avg_cost)}</td>
                   <td className="px-3 py-2 text-right">{formatCurrency(sp.medicare_pays)}</td>

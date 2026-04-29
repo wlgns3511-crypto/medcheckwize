@@ -1,14 +1,30 @@
 #!/usr/bin/env tsx
 /**
- * build-sitemap.ts — medcheckwize static sitemap generator.
+ * build-sitemap.ts — medcheckwize sitemap (HCU Phase C, 2026-04-25).
  *
- * PRUNING HISTORY (post-HCU March 2026):
- *   Pre-prune: ~16,870 URLs. /es/* tree × 8,210 thin Spanish translation
- *              over identical medical cost data.
- *   2026-04-22: Option B+ prune. DROP /es/* entirely. KEEP the full
- *              /state/[slug]/[procedure]/ matrix (8,000 URLs) — that IS
- *              the product (cost of procedure X in state Y).
- *              Route stays live via dynamicParams — existing URLs remain 200.
+ * PRUNING HISTORY:
+ *   2026-04-22 Option B+: Dropped /es/* (8,210) from sitemap. Routes stayed live
+ *     → 0 ES queries in GSC, but sitemap dropped from 16,870 → 8,456 URLs.
+ *
+ *   2026-04-25 Phase C (this rewrite):
+ *     GSC after 3 months on medcheckwize.com (878 queries / 2 clicks):
+ *       - 100% of clicks landed on /procedure/{slug}/ (heart-valve, hip,
+ *         spinal-fusion, lumbar-disc, discectomy, nasal-polyps, lipid-panel)
+ *       - State×procedure leaf pages (8,000 of them) generated 0 clicks but
+ *         sat in "발견됨-색인X" pile alongside /compare/{state-vs-state}/
+ *         and /procedure-compare/{a-vs-b}/
+ *       - /es/* legacy 404s still accumulating despite 4/22 sitemap drop
+ *
+ *     Killed (410 via middleware): /state/{slug}/{procedure}/ leaf matrix
+ *       (8,000 doorways), /compare/, /procedure-compare/, /embed/, /es/.
+ *       Removed app/ dirs: compare, procedure-compare, embed, es,
+ *       state/[slug]/[procedure].
+ *
+ *     Kept: / + /calculator/, /state/{slug}/ × 50 (hubs only),
+ *       /procedure/{slug}/ × 160 (real signal — top GSC = procedure name +
+ *       "cost" pattern), /blog/ + 33 posts, /guide/ + 5 guides, static.
+ *
+ *     Sitemap: 8,456 → ~258 URLs (-97%, matches wagepeek/salarybycity scale).
  *
  * USAGE:
  *   npx tsx scripts/build-sitemap.ts
@@ -42,17 +58,6 @@ const db = new Database(path.resolve(__dirname, '..', 'data', 'medicare.db'), { 
 
 const states = (db.prepare('SELECT slug FROM states').all() as { slug: string }[]).map(r => r.slug);
 const procedures = (db.prepare('SELECT slug FROM procedures').all() as { slug: string }[]).map(r => r.slug);
-// state×procedure pairs — state_procedures uses state=abbr FK and procedure_slug
-const stateProcedures = db.prepare(
-  'SELECT s.slug as state_slug, sp.procedure_slug FROM state_procedures sp JOIN states s ON s.abbr = sp.state'
-).all() as { state_slug: string; procedure_slug: string }[];
-// CAPPED at 100 to match page.tsx getAllComparisonSlugs().slice(0, 100) (2026-04-22 HCU-defense)
-// Was: 1,225 state pairs × 2 locales = 2,450 URLs; page.tsx dynamicParams=false → ~2,250 URLs 404.
-const comparisons = (db.prepare('SELECT slug FROM comparisons LIMIT 100').all() as { slug: string }[]).map(r => r.slug);
-// procedure-compare: CAPPED at 100 to match page.tsx getAllProcedureComparisonSlugs().slice(0, 100)
-// HCU-defense 2026-04-22: was 12,720 URLs per locale (EN+ES=25,440 total) → soft-404 risk under dynamicParams=false.
-const procCompEN = (db.prepare('SELECT slug FROM procedure_comparisons ORDER BY id LIMIT 100').all() as { slug: string }[]).map(r => r.slug);
-const procCompES = procCompEN;
 
 db.close();
 
@@ -111,39 +116,36 @@ add({ url: `${SITE_URL}/about/`, priority: '0.3', changefreq: 'yearly' });
 add({ url: `${SITE_URL}/privacy/`, priority: '0.3', changefreq: 'yearly' });
 add({ url: `${SITE_URL}/terms/`, priority: '0.3', changefreq: 'yearly' });
 add({ url: `${SITE_URL}/contact/`, priority: '0.3', changefreq: 'yearly' });
+add({ url: `${SITE_URL}/methodology/`, priority: '0.4', changefreq: 'yearly' });
+add({ url: `${SITE_URL}/disclaimer/`, priority: '0.3', changefreq: 'yearly' });
 
-// ── Guide pages ───────────────────────────────────────────────────────────────
+// ── Guide pages ──────────────────────────────────────────────────────────────
 for (const g of guideSlugs) add({ url: `${SITE_URL}/guide/${g}/`, priority: '0.7', changefreq: 'monthly' });
 
-// ── Blog pages ────────────────────────────────────────────────────────────────
+// ── Blog pages ───────────────────────────────────────────────────────────────
 for (const s of blogSlugs) add({ url: `${SITE_URL}/blog/${s}/`, priority: '0.7', changefreq: 'monthly' });
 
-// ── State pages ──────────────────────────────────────────────────────────────
-for (const s of states) add({ url: `${SITE_URL}/state/${s}/`, priority: '0.8', changefreq: 'monthly' });
+// ── State hubs × 50 ──────────────────────────────────────────────────────────
+for (const s of states) add({ url: `${SITE_URL}/state/${s}/`, priority: '0.85', changefreq: 'monthly' });
 
-// ── Procedure pages ───────────────────────────────────────────────────────────
-for (const p of procedures) add({ url: `${SITE_URL}/procedure/${p}/`, priority: '0.7', changefreq: 'monthly' });
+// ── Procedure pages × 160 (real GSC signal) ──────────────────────────────────
+for (const p of procedures) add({ url: `${SITE_URL}/procedure/${p}/`, priority: '0.8', changefreq: 'monthly' });
 
-// ── State×Procedure pages ─────────────────────────────────────────────────────
-for (const sp of stateProcedures) add({ url: `${SITE_URL}/state/${sp.state_slug}/${sp.procedure_slug}/`, priority: '0.6', changefreq: 'monthly' });
+// ─── KILLED 2026-04-25 HCU Phase C ──────────────────────────────────────────
+//   /state/{slug}/{procedure}/ × 8,000 — leaf matrix doorway, 0 GSC clicks
+//   /compare/{state-vs-state}/ × 100 — 0 GSC clicks
+//   /procedure-compare/{a-vs-b}/ × 100 — 0 GSC clicks
+//   /embed/medicare-calc/ — embed widget, never indexed
+//   /es/* — Spanish mirror, 0 ES queries in GSC
+// All return 410 via middleware.ts. App dirs deleted.
 
-// ── Compare pages (state pairs) ───────────────────────────────────────────────
-for (const c of comparisons) add({ url: `${SITE_URL}/compare/${c}/`, priority: '0.5', changefreq: 'monthly' });
-
-// ── Procedure compare (EN: top 20) ───────────────────────────────────────────
-for (const c of procCompEN) add({ url: `${SITE_URL}/procedure-compare/${c}/`, priority: '0.5', changefreq: 'yearly' });
-
-// ─── /es/* × 8,210 DROPPED 2026-04-22 (HCU defense) ─────────────────────
-// Thin Spanish translation over identical medical cost data. Routes stay
-// live via dynamicParams — existing /es/* URLs remain 200. EN matrix
-// (state × procedure) preserved intact — that IS the product.
-
-// ─── Cardinality guard ────────────────────────────────────────────────────
-if (entries.length > 10000 && !process.env.SITEMAP_LARGE_OK) {
+// ─── Cardinality guard ───────────────────────────────────────────────────────
+// Phase C target ~258. Tripwire at 500 (procedure DB could grow naturally).
+if (entries.length > 500 && !process.env.SITEMAP_LARGE_OK) {
   throw new Error(
-    `medcheckwize sitemap has ${entries.length.toLocaleString()} URLs — Option B+ budget is ~8.7K.\n` +
-      `Did /es/* (8,210) get re-added?\n` +
-      `That's exactly the loop that caused the original cardinality collapse.\n` +
+    `medcheckwize sitemap has ${entries.length.toLocaleString()} URLs — Phase C budget is ~258.\n` +
+      `Did /state/{slug}/{procedure}/ leaf matrix get re-added? That's the doorway HCU Phase C explicitly killed.\n` +
+      `Or did /compare/, /procedure-compare/, /es/, /embed/ creep back in?\n` +
       `Run with SITEMAP_LARGE_OK=1 if you genuinely meant to expand the tier.`,
   );
 }
@@ -166,4 +168,4 @@ if (shardCount <= 1) {
     Array.from({ length: shardCount }, (_, i) => `  <sitemap><loc>${SITE_URL}/sitemap-${i}.xml</loc><lastmod>${NOW}</lastmod></sitemap>`).join('\n') + '\n</sitemapindex>\n';
   fs.writeFileSync(path.join(OUT_DIR, 'sitemap.xml'), idx);
 }
-console.log(`medcheckwize: ${entries.length} URLs, ${shardCount || 1} shard(s)`);
+console.log(`✓ medcheckwize sitemap: ${entries.length} unique URLs, ${shardCount || 1} shard(s)`);

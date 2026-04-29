@@ -134,9 +134,10 @@ export default function Home() {
             <div className="font-medium text-teal-700">Medicare Cost Calculator</div>
             <div className="text-xs text-slate-500 mt-1">Estimate your annual Medicare costs</div>
           </a>
-          <a href="/compare/california-vs-florida/" className="border border-teal-200 bg-teal-50 rounded-lg p-4 text-center hover:bg-teal-100 transition-colors">
-            <div className="font-medium text-teal-700">Compare States</div>
-            <div className="text-xs text-slate-500 mt-1">Side-by-side healthcare cost comparison</div>
+          {/* /compare/ killed 2026-04-25 HCU Phase C — pointed at top GSC procedure */}
+          <a href="/procedure/heart-valve-replacement/" className="border border-teal-200 bg-teal-50 rounded-lg p-4 text-center hover:bg-teal-100 transition-colors">
+            <div className="font-medium text-teal-700">Heart Valve Replacement</div>
+            <div className="text-xs text-slate-500 mt-1">Medicare coverage & out-of-pocket cost</div>
           </a>
           <a href="/procedure/total-knee-replacement/" className="border border-teal-200 bg-teal-50 rounded-lg p-4 text-center hover:bg-teal-100 transition-colors">
             <div className="font-medium text-teal-700">Popular Procedures</div>

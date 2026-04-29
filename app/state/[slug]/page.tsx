@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { getAllStateSlugs, getStateBySlug, getStateProcedures, getComparisonLinksForState, getStateByAbbr, getNationalStats, getAffordabilityRank, getSimilarSpendingStates, getTopProceduresByCategory } from '@/lib/db';
+// HCU Phase C 2026-04-25: getComparisonLinksForState/getStateByAbbr no longer
+// used after /compare/{state-vs-state}/ was killed (410). Kept import surface
+// stable — lib/db.ts still exports these for build-sitemap.ts compatibility.
+import { getAllStateSlugs, getStateBySlug, getStateProcedures, getNationalStats, getAffordabilityRank, getSimilarSpendingStates, getTopProceduresByCategory } from '@/lib/db';
 import { formatCurrency, formatNumber, formatPercent, getDataYear, categoryLabel } from '@/lib/format';
 import { breadcrumbSchema, faqSchema, generateStateFAQs } from '@/lib/schema';
 import { Breadcrumb } from '@/components/Breadcrumb';
@@ -13,7 +16,7 @@ import { InsightBlock } from '@/components/upgrades/InsightBlock';
 import { getStateInsights } from '@/lib/insights';
 import { StateRich } from '@/components/state/StateRich';
 
-export const dynamicParams = true;
+export const dynamicParams = false;
 export const revalidate = 86400;
 
 export async function generateStaticParams() {
@@ -40,7 +43,6 @@ export default async function StatePage({ params }: { params: Promise<{ slug: st
   const year = getDataYear();
   const procedures = getStateProcedures(state.abbr);
   const faqs = generateStateFAQs(state);
-  const compLinks = getComparisonLinksForState(state.abbr, 8);
   const national = getNationalStats();
   const affordRank = getAffordabilityRank(state.abbr);
 
@@ -155,8 +157,9 @@ export default async function StatePage({ params }: { params: Promise<{ slug: st
                 <tbody>
                   {procs.map((p, i) => (
                     <tr key={p.procedure_slug} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                      {/* HCU Phase C 2026-04-25: state×procedure leaf killed — link to /procedure/ hub */}
                       <td className="px-3 py-2">
-                        <a href={`/state/${slug}/${p.procedure_slug}/`} className="text-teal-600 hover:underline">{p.name}</a>
+                        <a href={`/procedure/${p.procedure_slug}/`} className="text-teal-600 hover:underline">{p.name}</a>
                       </td>
                       <td className="px-3 py-2 text-right">{formatCurrency(p.avg_cost)}</td>
                       <td className="px-3 py-2 text-right">{formatCurrency(p.medicare_pays)}</td>
@@ -170,22 +173,9 @@ export default async function StatePage({ params }: { params: Promise<{ slug: st
         ))}
       </section>
 
-      {/* Compare with Other States */}
-      {compLinks.length > 0 && (
-        <section className="mb-6">
-          <h2 className="text-xl font-bold mb-3">Compare {state.state} With Other States</h2>
-          <div className="flex flex-wrap gap-2">
-            {compLinks.map(link => {
-              const other = getStateByAbbr(link.other);
-              return other ? (
-                <a key={link.slug} href={`/compare/${link.slug}/`} className="border border-slate-200 rounded-lg px-3 py-2 text-sm hover:border-teal-300 hover:bg-teal-50">
-                  {state.state} vs {other.state}
-                </a>
-              ) : null;
-            })}
-          </div>
-        </section>
-      )}
+      {/* Compare With Other States — section killed 2026-04-25 HCU Phase C
+          (/compare/{state-vs-state}/ → 410). State-to-state similarity already
+          covered by "States with Similar Medicare Spending" section below. */}
 
       {/* Related Procedures */}
       {(() => {
@@ -195,8 +185,9 @@ export default async function StatePage({ params }: { params: Promise<{ slug: st
           <section className="mb-6">
             <h2 className="text-xl font-bold mb-3">Related Procedures in {state.state}</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {/* HCU Phase C 2026-04-25: state×procedure leaf killed — link to /procedure/ hub */}
               {topProcs.map(p => (
-                <a key={p.procedure_slug} href={`/state/${slug}/${p.procedure_slug}/`}
+                <a key={p.procedure_slug} href={`/procedure/${p.procedure_slug}/`}
                   className="block p-3 border border-slate-200 rounded-lg hover:border-teal-300 hover:bg-teal-50 transition-colors text-sm">
                   <span className="font-medium text-teal-700">{p.name}</span>
                   <span className="block text-xs text-slate-400 mt-1">{categoryLabel(p.category)} &middot; {formatCurrency(p.avg_cost)}</span>
