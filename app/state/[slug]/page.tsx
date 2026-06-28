@@ -5,7 +5,8 @@ import { notFound } from 'next/navigation';
 // stable — lib/db.ts still exports these for build-sitemap.ts compatibility.
 import { getAllStateSlugs, getStateBySlug, getStateProcedures, getNationalStats, getAffordabilityRank, getSimilarSpendingStates, getTopProceduresByCategory } from '@/lib/db';
 import { formatCurrency, formatNumber, formatPercent, getDataYear, categoryLabel } from '@/lib/format';
-import { breadcrumbSchema, faqSchema, generateStateFAQs } from '@/lib/schema';
+import { breadcrumbSchema, faqSchema, generateStateFAQs, datasetSchema } from '@/lib/schema';
+import { STATE_VINTAGE } from '@/lib/authorship';
 import { Breadcrumb } from '@/components/Breadcrumb';
 import { AdSlot } from '@/components/AdSlot';
 import { FAQ } from '@/components/FAQ';
@@ -13,10 +14,32 @@ import { CiteButton } from '@/components/CiteButton';
 import { MedicareCostCalculator } from '@/components/MedicareCostCalculator';
 import { FeedbackButton } from '@/components/FeedbackButton';
 import { InsightBlock } from '@/components/upgrades/InsightBlock';
+import { TrustBlock } from '@/components/upgrades/TrustBlock';
+import { TableOfContents } from '@/components/upgrades/TableOfContents';
+import { RelatedEntities } from '@/components/upgrades/RelatedEntities';
 import { getStateInsights } from '@/lib/insights';
 import { StateRich } from '@/components/state/StateRich';
 import { getStateFactsByAbbr } from '@/lib/state-facts';
 import { getStateCommentary } from '@/lib/state-commentary';
+import { AuthorBox } from '@/components/AuthorBox';
+import { MedicareStackIndexCard } from '@/components/MedicareStackIndex';
+import { getMedicareStackIndex } from '@/lib/medicare-stack';
+import { MedigapAccessTierCard } from '@/components/MedigapAccessTier';
+import { classifyMedigapAccess } from '@/lib/medigap-access-tier';
+import { IrmaaTierCard } from '@/components/IrmaaTier';
+import { classifyIrmaaForState, ACS_B19013_2024_5YEAR } from '@/lib/irmaa-tier';
+import { MedcheckwizeInterpretationCard } from '@/components/MedcheckwizeInterpretation';
+import { interpretMedcheckwizeState } from '@/lib/medcheckwize-interpretation';
+import {
+  composeStateMedicareTitle,
+  monthlyStackTier,
+  MEDICARE_STACK_CROSSWALK_SOURCES,
+} from '@/lib/crosswalk-medicare-stack';
+import { MedicareCrossWalkBridge } from '@/components/MedicareCrossWalkBridge';
+import { StateHeroImage } from '@/components/StateHeroImage';
+import { getStateImageByName } from '@/lib/state-images';
+import { calculateProprietaryMetrics } from '@/lib/proprietary-metrics';
+import { ProprietaryMetricsBlock } from '@/components/upgrades/ProprietaryMetricsBlock';
 
 export const dynamicParams = false;
 export const revalidate = 86400;
@@ -29,9 +52,43 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const state = getStateBySlug(slug);
   if (!state) return {};
+  // Phase 7 P1 — verdict-in-title surface. composeStateMedicareTitle yields
+  // "{State}: ${stack}/mo Medicare ({Tier} #{rank}/{total})" (≤45 chars body
+  // with the current 50-state cohort); the layout template appends
+  // " | MedCheckWize" (15 chars) for a full title ≤60 chars (Massachusetts
+  // worst case). 0/50 states exceed 70 chars per scripts/audit-phase7.ts.
+  const stack = getMedicareStackIndex(state.abbr);
+  const title = stack
+    ? composeStateMedicareTitle(state.state, stack)
+    : `Medicare & Medicaid Costs in ${state.state} (${state.abbr}) - ${getDataYear()}`;
+
+  let description = `${state.state} Medicare spending: ${formatCurrency(state.avg_medicare_spending_per_capita)}/capita. Compare procedure costs, premiums, and coverage for ${formatNumber(state.medicare_enrollees)} beneficiaries.`;
+  
+  if (stack) {
+    const medigap = classifyMedigapAccess(state.abbr);
+    const acsMedian = ACS_B19013_2024_5YEAR[state.abbr] ?? 0;
+    const irmaa = classifyIrmaaForState(acsMedian);
+    const interpretation = interpretMedcheckwizeState({
+      state,
+      stack,
+      medigap,
+      irmaa,
+    });
+    const metrics = calculateProprietaryMetrics(
+      state,
+      stack,
+      medigap,
+      irmaa,
+      interpretation.dominantSignal,
+      slug
+    );
+    description = `[Medicare Affordability: ${metrics.stackAffordabilityScore}/100, Grade: ${metrics.overallGrade}] ` +
+      `${state.state} Medicare stack: ${formatCurrency(stack.monthlyStackUsd)}/mo (Part B ${formatCurrency(stack.partBPremiumUsd)} + Part D ${formatCurrency(stack.partDPremiumUsd)} + Medigap ${formatCurrency(stack.medigapPremiumUsd)}). National rank ${stack.nationalRank} of ${stack.totalRanked}. CMS / KFF / NAIC / SSA cross-walk.`;
+  }
+
   return {
-    title: `Medicare & Medicaid Costs in ${state.state} (${state.abbr}) - ${getDataYear()}`,
-    description: `${state.state} Medicare spending: ${formatCurrency(state.avg_medicare_spending_per_capita)}/capita. Compare procedure costs, premiums, and coverage for ${formatNumber(state.medicare_enrollees)} beneficiaries.`,
+    title,
+    description,
     alternates: { canonical: `/state/${slug}/` },
     openGraph: { url: `/state/${slug}/` },
   };
@@ -49,6 +106,25 @@ export default async function StatePage({ params }: { params: Promise<{ slug: st
   const affordRank = getAffordabilityRank(state.abbr);
   const stateFacts = getStateFactsByAbbr(state.abbr);
   const commentary = stateFacts ? getStateCommentary(stateFacts) : null;
+  const stackIndex = getMedicareStackIndex(state.abbr);
+  const medigapAccess = classifyMedigapAccess(state.abbr);
+  const acsMedian = ACS_B19013_2024_5YEAR[state.abbr] ?? 0;
+  const irmaaApplication = classifyIrmaaForState(acsMedian);
+  const interpretation = interpretMedcheckwizeState({
+    state,
+    stack: stackIndex,
+    medigap: medigapAccess,
+    irmaa: irmaaApplication,
+  });
+
+  const metrics = calculateProprietaryMetrics(
+    state,
+    stackIndex,
+    medigapAccess,
+    irmaaApplication,
+    interpretation.dominantSignal,
+    slug
+  );
 
   // Group procedures by category
   const grouped: Record<string, typeof procedures> = {};
@@ -62,17 +138,25 @@ export default async function StatePage({ params }: { params: Promise<{ slug: st
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Dataset",
-            "name": `Medicare & Medicaid Costs in ${state.state} (${year})`,
-            "description": `Medicare spending, procedure costs, premiums, and coverage data for ${state.state}. Per-capita spending: ${formatCurrency(state.avg_medicare_spending_per_capita)}.`,
-            "url": `https://medcheckwize.com/state/${slug}/`,
-            "license": "https://creativecommons.org/publicdomain/zero/1.0/",
-            "creator": { "@type": "Organization", "name": "DataPeek Facts", "url": "https://datapeekfacts.com" },
-            "temporalCoverage": String(year),
-            "distribution": { "@type": "DataDownload", "encodingFormat": "text/html", "contentUrl": `https://medcheckwize.com/state/${slug}/` }
-          })
+          __html: JSON.stringify(datasetSchema({
+            name: `Medicare & Medicaid Costs in ${state.state} (${year})`,
+            description: `Medicare spending, procedure costs, premiums, and coverage data for ${state.state}. Per-capita spending: ${formatCurrency(state.avg_medicare_spending_per_capita)}.`,
+            url: `https://medcheckwize.com/state/${slug}/`,
+            vintage: STATE_VINTAGE,
+            temporalCoverage: String(year),
+            variableMeasured: [
+              'Average Medicare spending per beneficiary',
+              'Medicare beneficiary enrollment',
+              'Medicaid & CHIP enrollment',
+              'Medicaid expansion status',
+              'Part B premium',
+              'Part D average premium',
+              'Medigap average premium',
+              'Uninsured rate',
+              'Per-procedure CMS allowed amount',
+              'Per-procedure Medicare paid amount',
+            ],
+          })),
         }}
       />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema([
@@ -80,11 +164,205 @@ export default async function StatePage({ params }: { params: Promise<{ slug: st
         { name: state.state, url: `/state/${slug}/` },
       ])) }} />
       {faqs.length > 0 && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema(faqs)) }} />}
+      {/* Phase 7 consolidated Dataset JSON-LD — emits the MedicareStackIndex
+          cross-walk with FOUR distinct creator orgs as an array (CMS / KFF /
+          NAIC / SSA) and variableMeasured PropertyValues that surface the
+          verdict elements (TertileTier / NationalRank / MonthlyStackUsd) as
+          schema-explicit values. The three lever-scoped Dataset blocks below
+          keep their narrower scoped attribution. Trap #110/#117/#118. */}
+      {stackIndex && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'Dataset',
+              name: `Medicare Stack Index Cross-Walk — ${state.state}`,
+              description: `Composed Medicare premium stack for ${state.state}: CMS 2025 Part B federal premium + KFF Part D plan-landscape weighted-average + KFF Medigap rate-filings (Plan G age-65 baseline). Ranked nationally 1-${stackIndex.totalRanked} (1 = cheapest combined stack). Tertile-banded tier surfaces in page title.`,
+              url: `https://medcheckwize.com/state/${slug}/#stack-cross-walk`,
+              license: 'https://creativecommons.org/publicdomain/zero/1.0/',
+              creator: MEDICARE_STACK_CROSSWALK_SOURCES.map((s) => ({
+                '@type': 'Organization',
+                name: s.name,
+                url: s.url,
+              })),
+              publisher: {
+                '@type': 'Organization',
+                name: 'DataPeek Research Network',
+                url: 'https://datapeekfacts.com',
+              },
+              temporalCoverage: String(year),
+              dateModified: STATE_VINTAGE,
+              isBasedOn: MEDICARE_STACK_CROSSWALK_SOURCES.map((s) => s.url),
+              variableMeasured: [
+                {
+                  '@type': 'PropertyValue',
+                  name: 'MonthlyStackUsd',
+                  description: 'Composed monthly Medicare premium stack (Part B + Part D + Medigap)',
+                  unitText: 'USD',
+                  value: stackIndex.monthlyStackUsd,
+                },
+                {
+                  '@type': 'PropertyValue',
+                  name: 'NationalRank',
+                  description: 'National rank of the composed stack (1 = cheapest; ranked across the 50 USPS states present in data/medicare.db)',
+                  value: stackIndex.nationalRank,
+                  maxValue: stackIndex.totalRanked,
+                },
+                {
+                  '@type': 'PropertyValue',
+                  name: 'AffordabilityScore',
+                  description: 'Normalized affordability score (0-100, higher = more affordable)',
+                  value: stackIndex.affordabilityScore,
+                },
+                {
+                  '@type': 'PropertyValue',
+                  name: 'TertileTier',
+                  description: 'Tertile band of national rank (Low / Mid / High — ~17 states per band across the 50-state cohort; audit 2026-05-19: 17/17/16)',
+                  value: monthlyStackTier(stackIndex.nationalRank, stackIndex.totalRanked),
+                },
+                {
+                  '@type': 'PropertyValue',
+                  name: 'PartBPremiumUsd',
+                  description: 'Federal Part B premium (CMS 2025)',
+                  unitText: 'USD',
+                  value: stackIndex.partBPremiumUsd,
+                },
+                {
+                  '@type': 'PropertyValue',
+                  name: 'PartDPremiumUsd',
+                  description: 'State-level Part D plan-landscape weighted-average premium (KFF 2025)',
+                  unitText: 'USD',
+                  value: stackIndex.partDPremiumUsd,
+                },
+                {
+                  '@type': 'PropertyValue',
+                  name: 'MedigapPremiumUsd',
+                  description: 'State-level Medigap Plan G age-65 baseline premium (KFF rate-filings analysis)',
+                  unitText: 'USD',
+                  value: stackIndex.medigapPremiumUsd,
+                },
+                {
+                  '@type': 'PropertyValue',
+                  name: 'PctVsNationalMedian',
+                  description: 'Signed percentage deviation from the national median monthly stack',
+                  unitText: 'PCT',
+                  value: stackIndex.pctVsNationalMedian,
+                },
+              ],
+              distribution: {
+                '@type': 'DataDownload',
+                encodingFormat: 'text/html',
+                contentUrl: `https://medcheckwize.com/state/${slug}/`,
+              },
+            }),
+          }}
+        />
+      )}
+      {/* Lever-card Dataset surfaces — each with creator override anchored to
+          the primary data origin for that lever (Trap #105 honest attribution). */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(datasetSchema({
+            name: `Medicare Premium Stack Index — ${state.state}`,
+            description: `Combined Part B + Part D + Plan G Medigap monthly premium stack for ${state.state} with national rank and affordability score. Sources: CMS (federal Part B) and KFF (state Part D + state Medigap).`,
+            url: `https://medcheckwize.com/state/${slug}/#stack-index`,
+            vintage: STATE_VINTAGE,
+            temporalCoverage: String(year),
+            variableMeasured: [
+              'Part B federal premium',
+              'Part D state weighted-average premium',
+              'Medigap Plan G state age-65 baseline premium',
+              'Monthly combined premium stack',
+              'Annual combined premium stack',
+              'National rank (1=cheapest)',
+              'Affordability score (0–100)',
+            ],
+            creatorOverride: [
+              { name: 'Centers for Medicare & Medicaid Services', url: 'https://www.cms.gov/' },
+              { name: 'KFF Health Policy', url: 'https://www.kff.org/medicare/' },
+            ],
+          })),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(datasetSchema({
+            name: `Medigap Access Tier — ${state.state}`,
+            description: `Federal §1395ss floor + state DOI overlay Medigap underwriting regime classification for ${state.state}. Anchored to 42 USC §1395ss, 42 CFR §403.205, and NAIC Model Regulation §6.`,
+            url: `https://medcheckwize.com/state/${slug}/#medigap-access-tier`,
+            vintage: STATE_VINTAGE,
+            temporalCoverage: String(year),
+            variableMeasured: [
+              'Medigap underwriting tier (A-E)',
+              'Regime (guaranteed-issue / community-rated / issue-age / attained-age)',
+              'Birthday rule flag',
+              'Open-enrollment window descriptor',
+              'Federal anchor citation',
+            ],
+            creatorOverride: [
+              { name: 'National Association of Insurance Commissioners (NAIC)', url: 'https://content.naic.org/' },
+              { name: 'Centers for Medicare & Medicaid Services', url: 'https://www.cms.gov/' },
+            ],
+          })),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(datasetSchema({
+            name: `IRMAA Tier — ${state.state}`,
+            description: `CMS-published 2026 Income-Related Monthly Adjustment Amount schedule applied to the ${state.state} statewide Census ACS B19013 median household income. Anchored to 42 USC §1395r(i) and 42 USC §1395w-113(a)(7).`,
+            url: `https://medcheckwize.com/state/${slug}/#irmaa-tier`,
+            vintage: STATE_VINTAGE,
+            temporalCoverage: '2026',
+            variableMeasured: [
+              'Statewide ACS B19013 median household income (MAGI proxy)',
+              'IRMAA bracket tier (0-5)',
+              'Part B income-related surcharge (monthly USD)',
+              'Part D income-related surcharge (monthly USD)',
+              'Total annual IRMAA surcharge',
+              'Federal anchor citation',
+            ],
+            creatorOverride: [
+              { name: 'Centers for Medicare & Medicaid Services', url: 'https://www.cms.gov/' },
+              { name: 'Social Security Administration', url: 'https://www.ssa.gov/' },
+              { name: 'Internal Revenue Service', url: 'https://www.irs.gov/' },
+            ],
+          })),
+        }}
+      />
 
-      <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: state.state }]} />
+      <article data-toc-root>
+        <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: state.state }]} />
 
-      <h1 className="text-3xl font-bold mb-2">Medicare &amp; Medicaid in {state.state} ({state.abbr})</h1>
-      <p className="text-slate-600 mb-6">{year} healthcare costs, coverage, and spending data for {state.state}.</p>
+
+        {(() => { const stateImage = getStateImageByName(state.state); return stateImage ? <StateHeroImage img={stateImage} /> : null; })()}
+
+        <h1 className="text-3xl font-bold mb-2">Medicare &amp; Medicaid in {state.state} ({state.abbr})</h1>
+        <p className="text-slate-600 mb-6">{year} healthcare costs, coverage, and spending data for {state.state}.</p>
+
+        <TrustBlock
+          sources={[
+            { name: 'Centers for Medicare & Medicaid Services (CMS)', url: 'https://www.cms.gov/' },
+            { name: 'KFF Health Policy', url: 'https://www.kff.org/' },
+            { name: 'National Association of Insurance Commissioners (NAIC)', url: 'https://content.naic.org/' },
+            { name: 'Social Security Administration (SSA)', url: 'https://www.ssa.gov/' }
+          ]}
+          updated={STATE_VINTAGE}
+        />
+
+        <ProprietaryMetricsBlock
+          stackAffordabilityScore={metrics.stackAffordabilityScore}
+          medigapAccessScore={metrics.medigapAccessScore}
+          irmaaRiskScore={metrics.irmaaRiskScore}
+          overallGrade={metrics.overallGrade}
+          commentary={metrics.commentary}
+        />
+
+        <TableOfContents />
 
       {/* State Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
@@ -146,6 +424,18 @@ export default async function StatePage({ params }: { params: Promise<{ slug: st
           )}
         </div>
       </section>
+
+      {stackIndex && <MedicareStackIndexCard data={stackIndex} />}
+
+      <MedigapAccessTierCard state={state.state} data={medigapAccess} />
+      <IrmaaTierCard state={state.state} data={irmaaApplication} />
+      <MedcheckwizeInterpretationCard state={state.state} data={interpretation} />
+
+      <MedicareCrossWalkBridge
+        stateSlug={slug}
+        stateAbbr={state.abbr}
+        stateName={state.state}
+      />
 
       <AdSlot id="state-mid" />
 
@@ -216,18 +506,15 @@ export default async function StatePage({ params }: { params: Promise<{ slug: st
         const similar = getSimilarSpendingStates(state.avg_medicare_spending_per_capita, state.abbr, 6);
         if (similar.length === 0) return null;
         return (
-          <section className="mb-6">
-            <h2 className="text-xl font-bold mb-3">States with Similar Medicare Spending</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {similar.map(s => (
-                <a key={s.slug} href={`/state/${s.slug}/`}
-                  className="block p-3 border border-slate-200 rounded-lg hover:border-teal-300 hover:bg-teal-50 transition-colors text-sm">
-                  <span className="font-medium text-teal-700">{s.state} ({s.abbr})</span>
-                  <span className="block text-xs text-slate-400 mt-1">{formatCurrency(s.avg_medicare_spending_per_capita)}/capita</span>
-                </a>
-              ))}
-            </div>
-          </section>
+          <RelatedEntities
+            entityName={state.state}
+            items={similar.map(s => ({
+              name: `${s.state} (${s.abbr})`,
+              href: `/state/${s.slug}/`,
+              stat: `${formatCurrency(s.avg_medicare_spending_per_capita)}/capita`
+            }))}
+            heading="States with Similar Medicare Spending"
+          />
         );
       })()}
 
@@ -306,6 +593,8 @@ export default async function StatePage({ params }: { params: Promise<{ slug: st
 
       <StateRich slug={slug} state={state} />
 
+      <AuthorBox layer="state" showDisclaimer />
+    </article>
     </>
   );
 }

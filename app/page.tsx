@@ -2,6 +2,7 @@ import { getAllStates, getNationalStats, getTopSpendingStates, getAllProcedures,
 import { formatCurrency, formatNumber, formatPercent, formatCompact, categoryLabel, getDataYear } from '@/lib/format';
 import { AdSlot } from '@/components/AdSlot';
 import { PopularEntities } from '@/components/upgrades/PopularEntities';
+import { AuthorBox } from '@/components/AuthorBox';
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { alternates: { canonical: "/" },
@@ -145,6 +146,8 @@ export default function Home() {
           </a>
         </div>
       </section>
+
+      <AuthorBox layer="site" showDisclaimer />
     </>
   );
 }

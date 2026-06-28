@@ -1,9 +1,99 @@
 import type { State, Procedure, StateProcedure } from './db';
 import { formatCurrency, formatPercent, getDataYear } from './format';
-import { PUBLISHER, EDITORIAL_TEAM } from './authorship';
+import { PUBLISHER, EDITORIAL_TEAM, SOURCE_AUTHORITIES } from './authorship';
 
 const SITE_NAME = 'MedCheckWize';
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://medcheckwize.com';
+
+/**
+ * Granular CMS / KFF / Census data providers actually backing rows on
+ * MedCheckWize. Listed as schema.org `sourceOrganization` on every Dataset
+ * payload so search engines can independently verify data lineage.
+ */
+const DATASET_SOURCE_ORGS = [
+  { name: 'Centers for Medicare & Medicaid Services', url: 'https://data.cms.gov/' },
+  { name: 'CMS Medicare Inpatient Hospitals by Geography & Service', url: 'https://data.cms.gov/provider-summary-by-type-of-service/medicare-inpatient-hospitals/medicare-inpatient-hospitals-by-geography-and-service' },
+  { name: 'CMS Medicare Physician & Other Practitioners by Geography & Service', url: 'https://data.cms.gov/provider-summary-by-type-of-service/medicare-physician-other-practitioners/medicare-physician-other-practitioners-by-geography-and-service' },
+  { name: 'CMS Medicare Outpatient Hospitals by Geography & Service (HOPPS APC)', url: 'https://data.cms.gov/provider-summary-by-type-of-service/medicare-outpatient-hospitals/medicare-outpatient-hospitals-by-geography-and-service' },
+  { name: 'CMS Clinical Laboratory Fee Schedule', url: 'https://www.cms.gov/medicare/payment/fee-schedules/clinical-laboratory-fee-schedule-clfs-files' },
+  { name: 'CMS Medicare Monthly Enrollment', url: 'https://data.cms.gov/summary-statistics-on-beneficiary-enrollment/medicare-and-medicaid-reports/medicare-monthly-enrollment' },
+  { name: 'CMS Medicare Geographic Variation', url: 'https://data.cms.gov/summary-statistics-on-use-and-payments/medicare-geographic-comparisons/medicare-geographic-variation-by-national-state-county' },
+  { name: 'KFF Health Policy', url: 'https://www.kff.org/medicare/' },
+  { name: 'US Census Bureau ACS', url: 'https://www.census.gov/programs-surveys/acs/' },
+] as const;
+
+interface DatasetArgs {
+  name: string;
+  description: string;
+  url: string;
+  vintage: string;             // ISO date for dateModified
+  temporalCoverage?: string;   // e.g. "2024" or "2024/2025"
+  variableMeasured: readonly string[];
+  // Per-lever creator override. When provided, replaces the default
+  // SOURCE_AUTHORITIES[0] creator on this Dataset. Useful when a lever
+  // is anchored to a different primary data origin (NAIC for Medigap
+  // regulation, CMS+SSA+IRS for IRMAA, CMS+KFF for Medicare Stack).
+  creatorOverride?: ReadonlyArray<{ name: string; url: string }>;
+}
+
+/**
+ * schema.org Dataset payload with reviewedBy + sourceOrganization +
+ * isBasedOn + variableMeasured + dateModified. Replaces the prior minimal
+ * inline Dataset JSON-LD on /state and /procedure pages.
+ */
+export function datasetSchema(args: DatasetArgs) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Dataset',
+    name: args.name,
+    description: args.description,
+    url: args.url,
+    license: 'https://creativecommons.org/publicdomain/zero/1.0/',
+    // Trap #105: creator = primary data origin org (CMS), NOT the publisher.
+    // Inlined SOURCE_AUTHORITIES[0] so audit grep can verify honest attribution.
+    // Per-lever override (NAIC / SSA+IRS) accepted via creatorOverride; first
+    // element renders as the canonical Dataset.creator org, rest stack into
+    // sourceOrganization on top of the network defaults.
+    creator: {
+      '@type': 'Organization',
+      name: (args.creatorOverride?.[0] ?? SOURCE_AUTHORITIES[0]).name,
+      url: (args.creatorOverride?.[0] ?? SOURCE_AUTHORITIES[0]).url,
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: PUBLISHER.name,
+      url: PUBLISHER.url,
+    },
+    reviewedBy: {
+      '@type': 'Organization',
+      name: EDITORIAL_TEAM.name,
+      url: EDITORIAL_TEAM.url,
+    },
+    sourceOrganization: [
+      // Per-lever override authorities (NAIC, SSA, IRS) stack on top so each
+      // Dataset surfaces its exact data origin set, not just the network defaults.
+      ...((args.creatorOverride ?? []).slice(1).map(o => ({
+        '@type': 'Organization' as const,
+        name: o.name,
+        url: o.url,
+      }))),
+      ...DATASET_SOURCE_ORGS.map(o => ({
+        '@type': 'Organization' as const,
+        name: o.name,
+        url: o.url,
+      })),
+    ],
+    isBasedOn: DATASET_SOURCE_ORGS.map(o => o.url),
+    temporalCoverage: args.temporalCoverage ?? String(getDataYear()),
+    dateModified: args.vintage,
+    variableMeasured: args.variableMeasured,
+    distribution: {
+      '@type': 'DataDownload',
+      encodingFormat: 'text/html',
+      contentUrl: args.url,
+    },
+  };
+}
 
 export function breadcrumbSchema(items: { name: string; url: string }[]) {
   return {

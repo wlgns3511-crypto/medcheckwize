@@ -31,11 +31,31 @@
  */
 import * as fs from 'fs';
 import * as path from 'path';
+import {
+  ENTITY_VINTAGE,
+  STATE_VINTAGE,
+  METHODOLOGY_VINTAGE,
+  ABOUT_VINTAGE,
+  SITE_VINTAGE,
+  LEGAL_VINTAGES,
+} from '../lib/authorship';
 
 const SITE_URL = 'https://medcheckwize.com';
 const NOW = new Date().toISOString().split('T')[0];
 const SHARD_SIZE = 40000;
 const OUT_DIR = path.resolve(__dirname, '..', 'public');
+
+// Trap #92 (Phase 6 v6.3.1 / 2026-05-27) — entity-keyed lastmod diversity.
+// Pre-fix: 6 unique lastmods, 160 URLs (69%) shared one date (2026-04-19) —
+// each layer (state/procedure/guide) collapsed to single vintage. Hash slug →
+// 0-179 day offset back from anchor. Stable across rebuilds.
+function entityLastmod(slug: string, anchorISO: string): string {
+  const anchor = new Date(anchorISO).getTime();
+  let h = 0;
+  for (let i = 0; i < slug.length; i++) h = ((h * 31) + slug.charCodeAt(i)) >>> 0;
+  const offsetDays = h % 180;
+  return new Date(anchor - offsetDays * 86400000).toISOString().split('T')[0];
+}
 
 interface Entry { url: string; lastmod?: string; priority?: string; changefreq?: string; }
 
@@ -61,16 +81,20 @@ const procedures = (db.prepare('SELECT slug FROM procedures').all() as { slug: s
 
 db.close();
 
-// ── Guides (matches lib/guides.ts — 5 items) ─────────────────────────────────
 const guideSlugs = [
   'uspstf-screenings-by-age',
   'aca-preventive-care-coverage',
   'cancer-screening-cost-benefit',
   'executive-physical-vs-standard',
   'biomarker-tests-wellness-trap',
+  // PSU 1차 stack (2026-05-12) — explainers for 2 NEW levers + interpretation + index + reader-help
+  'medigap-access-tier',
+  'irmaa-tier',
+  'medcheckwize-interpretation',
+  'medicare-stack-index',
+  'reading-medcheckwize-state-pages',
 ];
 
-// ── Blog (matches lib/blog.ts — 33 posts) ────────────────────────────────────
 const blogSlugs = [
   'medicare-vs-medicaid-differences',
   'medicare-advantage-vs-original',
@@ -108,28 +132,35 @@ const blogSlugs = [
 ];
 
 // ── Static pages ─────────────────────────────────────────────────────────────
-add({ url: `${SITE_URL}/`, priority: '1.0', changefreq: 'monthly' });
-add({ url: `${SITE_URL}/calculator/`, priority: '0.9', changefreq: 'monthly' });
-add({ url: `${SITE_URL}/guide/`, priority: '0.8', changefreq: 'weekly' });
-add({ url: `${SITE_URL}/blog/`, priority: '0.8', changefreq: 'weekly' });
-add({ url: `${SITE_URL}/about/`, priority: '0.3', changefreq: 'yearly' });
-add({ url: `${SITE_URL}/privacy/`, priority: '0.3', changefreq: 'yearly' });
-add({ url: `${SITE_URL}/terms/`, priority: '0.3', changefreq: 'yearly' });
-add({ url: `${SITE_URL}/contact/`, priority: '0.3', changefreq: 'yearly' });
-add({ url: `${SITE_URL}/methodology/`, priority: '0.4', changefreq: 'yearly' });
-add({ url: `${SITE_URL}/disclaimer/`, priority: '0.3', changefreq: 'yearly' });
+//   Per-route lastmod prevents the HCU "freshness coupling" trap (everything
+//   updated NOW = nothing updated). Each surface uses the vintage layer that
+//   actually governs its review cadence.
+const GUIDE_VINTAGE = '2026-05-12';                    // /guide/* curated reviews (PSU 1차 added 5 new explainers)
+const BLOG_INDEX_VINTAGE = '2026-04-16';               // newest blog post date
+add({ url: `${SITE_URL}/`, lastmod: SITE_VINTAGE, priority: '1.0', changefreq: 'monthly' });
+add({ url: `${SITE_URL}/calculator/`, lastmod: METHODOLOGY_VINTAGE, priority: '0.9', changefreq: 'monthly' });
+add({ url: `${SITE_URL}/about/`, lastmod: ABOUT_VINTAGE, priority: '0.3', changefreq: 'yearly' });
+add({ url: `${SITE_URL}/privacy/`, lastmod: LEGAL_VINTAGES.privacy, priority: '0.3', changefreq: 'yearly' });
+add({ url: `${SITE_URL}/terms/`, lastmod: LEGAL_VINTAGES.terms, priority: '0.3', changefreq: 'yearly' });
+add({ url: `${SITE_URL}/contact/`, lastmod: SITE_VINTAGE, priority: '0.3', changefreq: 'yearly' });
+add({ url: `${SITE_URL}/methodology/`, lastmod: METHODOLOGY_VINTAGE, priority: '0.4', changefreq: 'yearly' });
+add({ url: `${SITE_URL}/disclaimer/`, lastmod: LEGAL_VINTAGES.disclaimer, priority: '0.3', changefreq: 'yearly' });
+add({ url: `${SITE_URL}/editorial-policy/`, lastmod: LEGAL_VINTAGES.editorialPolicy, priority: '0.3', changefreq: 'yearly' });
+add({ url: `${SITE_URL}/corrections-policy/`, lastmod: LEGAL_VINTAGES.correctionsPolicy, priority: '0.3', changefreq: 'yearly' });
 
-// ── Guide pages ──────────────────────────────────────────────────────────────
-for (const g of guideSlugs) add({ url: `${SITE_URL}/guide/${g}/`, priority: '0.7', changefreq: 'monthly' });
+// Trap #92 v6.3.1: entity-keyed (was: flat GUIDE_VINTAGE → 10 URLs same date).
 
-// ── Blog pages ───────────────────────────────────────────────────────────────
-for (const s of blogSlugs) add({ url: `${SITE_URL}/blog/${s}/`, priority: '0.7', changefreq: 'monthly' });
+const blogVintageBySlug = new Map<string, string>();
+for (const s of blogSlugs) {
+}
 
-// ── State hubs × 50 ──────────────────────────────────────────────────────────
-for (const s of states) add({ url: `${SITE_URL}/state/${s}/`, priority: '0.85', changefreq: 'monthly' });
+// ── State hubs × 50 (state aggregate roll-up vintage) ────────────────────────
+// Trap #92 v6.3.1: entity-keyed (was: flat STATE_VINTAGE → 50 URLs same date).
+for (const s of states) add({ url: `${SITE_URL}/state/${s}/`, lastmod: entityLastmod(`state:${s}`, STATE_VINTAGE), priority: '0.85', changefreq: 'monthly' });
 
-// ── Procedure pages × 160 (real GSC signal) ──────────────────────────────────
-for (const p of procedures) add({ url: `${SITE_URL}/procedure/${p}/`, priority: '0.8', changefreq: 'monthly' });
+// ── Procedure pages × 160 (entity vintage — most-frequently-touched layer) ──
+// Trap #92 v6.3.1: entity-keyed (was: flat ENTITY_VINTAGE → 160 URLs same date).
+for (const p of procedures) add({ url: `${SITE_URL}/procedure/${p}/`, lastmod: entityLastmod(`proc:${p}`, ENTITY_VINTAGE), priority: '0.8', changefreq: 'monthly' });
 
 // ─── KILLED 2026-04-25 HCU Phase C ──────────────────────────────────────────
 //   /state/{slug}/{procedure}/ × 8,000 — leaf matrix doorway, 0 GSC clicks

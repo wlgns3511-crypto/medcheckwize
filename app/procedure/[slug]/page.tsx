@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getAllProcedureSlugs, getProcedureBySlug, getProcedureByState, getRelatedProcedures } from '@/lib/db';
 import { formatCurrency, getDataYear, categoryLabel } from '@/lib/format';
-import { breadcrumbSchema, faqSchema, generateProcedureFAQs } from '@/lib/schema';
+import { breadcrumbSchema, faqSchema, generateProcedureFAQs, datasetSchema } from '@/lib/schema';
+import { ENTITY_VINTAGE } from '@/lib/authorship';
 import { generateAutoFaqs } from '@/lib/auto-faqs';
 import { Breadcrumb } from '@/components/Breadcrumb';
 import { AdSlot } from '@/components/AdSlot';
@@ -142,6 +143,26 @@ export default async function ProcedurePage({ params }: { params: Promise<{ slug
         { name: proc.name, url: `/procedure/${slug}/` },
       ])) }} />
       {faqs.length > 0 && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema(faqs)) }} />}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(datasetSchema({
+            name: `${proc.name} cost with Medicare (${year})`,
+            description: `CMS allowed and paid amounts for ${proc.name} (${categoryLabel(proc.category)}). National average ${formatCurrency(proc.national_avg_cost)}; Medicare pays ${formatCurrency(proc.medicare_pays)}; patient share ${formatCurrency(proc.patient_pays)}.`,
+            url: `https://medcheckwize.com/procedure/${slug}/`,
+            vintage: ENTITY_VINTAGE,
+            temporalCoverage: String(year),
+            variableMeasured: [
+              'CMS allowed amount',
+              'Medicare paid amount',
+              'Beneficiary cost-share',
+              'State-level cost variation',
+              'CMS payment system mapping',
+              'MS-DRG / HCPCS / CPT code mapping',
+            ],
+          })),
+        }}
+      />
 
       <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Procedures' }, { label: proc.name }]} />
 
@@ -328,7 +349,7 @@ export default async function ProcedurePage({ params }: { params: Promise<{ slug
         ]}
       />
 
-      <AuthorBox />
+      <AuthorBox layer="entity" showDisclaimer />
 
       <FAQ items={faqs} />
     </>

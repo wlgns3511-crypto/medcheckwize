@@ -1,0 +1,27 @@
+# MedCheckWize
+
+> Medicare & Medicaid Costs by State
+
+Compare Medicare and Medicaid costs, coverage, and healthcare expenses across all 50 US states. Find procedure costs, premium estimates, and coverage details.
+
+## Core pages
+- [Methodology and data sources](https://medcheckwize.com/methodology/): how every figure is derived, with primary-source citations
+- [About and editorial standards](https://medcheckwize.com/about/): authorship and review policy
+
+## Key procedure
+- [Alabama](https://medcheckwize.com/state/alabama/)
+- [Alaska](https://medcheckwize.com/state/alaska/)
+- [Arizona](https://medcheckwize.com/state/arizona/)
+- [Arkansas](https://medcheckwize.com/state/arkansas/)
+- [California](https://medcheckwize.com/state/california/)
+- [Colorado](https://medcheckwize.com/state/colorado/)
+- [Connecticut](https://medcheckwize.com/state/connecticut/)
+- [Delaware](https://medcheckwize.com/state/delaware/)
+- [Florida](https://medcheckwize.com/state/florida/)
+- [Georgia](https://medcheckwize.com/state/georgia/)
+- [Hawaii](https://medcheckwize.com/state/hawaii/)
+- [Idaho](https://medcheckwize.com/state/idaho/)
+
+## Data
+- Primary sources: CMS Provider Data, KFF Health Policy, US Census ACS
+- All figures are derived from these primary sources; see /methodology/ for derivation and vintage.

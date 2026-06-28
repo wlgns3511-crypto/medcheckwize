@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { UpgradeAnalytics } from "@/components/upgrades/UpgradeAnalytics";
+import RelatedSites from "@/components/RelatedSites";
 
 const inter = Inter({ subsets: ["latin"], display: "swap" });
 
@@ -84,8 +85,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               <a href="/state/california/" className="hover:text-teal-600">States</a>
               <a href="/procedure/colonoscopy/" className="hover:text-teal-600">Procedures</a>
               <a href="/calculator/" className="hover:text-teal-600">Calculator</a>
-              <a href="/guide/" className="hover:text-teal-600">Guides</a>
-              <a href="/blog/" className="hover:text-teal-600">Articles</a>
             </nav>
           </div>
         </header>
@@ -95,20 +94,15 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <p>Built with public data from CMS.gov, Medicare.gov, and public healthcare cost databases (2026 estimates).</p>
             <p className="mt-2">
               <a href="/about/" className="hover:text-teal-600">About</a>{" | "}
+              <a href="/methodology/" className="hover:text-teal-600">Methodology</a>{" | "}
+              <a href="/editorial-policy/" className="hover:text-teal-600">Editorial Policy</a>{" | "}
+              <a href="/corrections-policy/" className="hover:text-teal-600">Corrections</a>{" | "}
               <a href="/privacy/" className="hover:text-teal-600">Privacy</a>{" | "}
               <a href="/terms/" className="hover:text-teal-600">Terms</a>{" | "}
               <a href="/disclaimer/" className="hover:text-teal-600">Disclaimer</a>{" | "}
               <a href="/contact/" className="hover:text-teal-600">Contact</a>
             </p>
-            <div className="mt-4 pt-4 border-t border-slate-100">
-              <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Companion Tools</p>
-              <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
-                <a href="https://eldercarepeek.com" className="hover:text-teal-600" rel="nofollow noopener">Elder Care</a>
-                <a href="https://costbycity.com" className="hover:text-teal-600" rel="nofollow noopener">Cost of Living</a>
-                <a href="https://zippeek.com" className="hover:text-teal-600" rel="nofollow noopener">ZIP Codes</a>
-                <a href="https://calcpeek.com" className="hover:text-teal-600" rel="nofollow noopener">Calculators</a>
-              </div>
-            </div>
+            <RelatedSites currentSite="MedCheckWize" accentClass="hover:text-teal-600" label="Companion Tools" />
             <p className="mt-3 text-xs italic text-slate-400">Demystifying Medicare coverage and healthcare costs for all Americans.</p>
             <p className="mt-1">&copy; {new Date().getFullYear()} {SITE_NAME}. Not affiliated with any government agency.</p>
           </div>

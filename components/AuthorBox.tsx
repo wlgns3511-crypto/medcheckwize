@@ -1,9 +1,43 @@
-import { DB_UPDATED } from "@/lib/authorship";
-import { EDITORIAL_TEAM, PUBLISHER } from "@/lib/authorship";
+import {
+  ENTITY_VINTAGE,
+  STATE_VINTAGE,
+  METHODOLOGY_VINTAGE,
+  ABOUT_VINTAGE,
+  SITE_VINTAGE,
+  EDITORIAL_TEAM,
+  PUBLISHER,
+  SOURCE_AUTHORITIES,
+  REVIEWER_DISCLAIMER,
+} from "@/lib/authorship";
 
-export function AuthorBox() {
-  const reviewedAt = DB_UPDATED;
-  const dataVintage = "Public dataset snapshot";
+type VintageLayer = 'entity' | 'state' | 'methodology' | 'about' | 'site';
+
+const VINTAGE_BY_LAYER: Record<VintageLayer, string> = {
+  entity: ENTITY_VINTAGE,
+  state: STATE_VINTAGE,
+  methodology: METHODOLOGY_VINTAGE,
+  about: ABOUT_VINTAGE,
+  site: SITE_VINTAGE,
+};
+
+interface AuthorBoxProps {
+  /** Which vintage layer to display. Defaults to `entity` for backwards compat. */
+  layer?: VintageLayer;
+  /** Override vintage with an explicit ISO date (e.g. blog updatedAt). Wins over `layer`. */
+  reviewedAt?: string;
+  /** Optional dataset-level descriptor shown alongside the vintage. */
+  dataVintage?: string;
+  /** Show the YMYL reviewer disclaimer line (recommended for entity/state/procedure pages). */
+  showDisclaimer?: boolean;
+}
+
+export function AuthorBox({ layer = 'entity', reviewedAt, dataVintage, showDisclaimer = false }: AuthorBoxProps = {}) {
+  const resolvedReviewedAt = reviewedAt ?? VINTAGE_BY_LAYER[layer];
+  const resolvedDataVintage = dataVintage ?? (
+    layer === 'methodology' || layer === 'about' || layer === 'site'
+      ? 'Editorial review'
+      : 'CMS provider data + KFF + Census ACS'
+  );
 
   return (
     <div className="mt-10 p-5 bg-slate-50 border border-slate-200 rounded-xl">
@@ -16,7 +50,7 @@ export function AuthorBox() {
         </div>
         <div className="flex-1 min-w-0">
           <div className="font-semibold text-slate-900 text-sm">
-            Data verified by {EDITORIAL_TEAM.name}
+            Reviewed by the {EDITORIAL_TEAM.name}
           </div>
           <div className="text-xs text-slate-500 mt-0.5">
             Part of the <a href={PUBLISHER.url} className="text-slate-700 hover:underline" rel="noopener">{PUBLISHER.name}</a>
@@ -24,16 +58,28 @@ export function AuthorBox() {
         </div>
       </div>
       <p className="text-xs text-slate-600 leading-relaxed mb-3">
-        MedCheckWize is maintained by an editorial workflow that audits public data sources and verifies dates, values, and methodology on every page. We publish as an organization — no individual bylines — and disclose our data vintage and review dates openly.
+        Each Medicare cost figure on MedCheckWize is cross-referenced against {SOURCE_AUTHORITIES.map((s, i) => (
+          <span key={s.name}>
+            {i > 0 && (i === SOURCE_AUTHORITIES.length - 1 ? ', and ' : ', ')}
+            <a href={s.url} className="text-slate-700 underline underline-offset-2 hover:text-slate-900" rel="noopener" target="_blank">
+              {s.name}
+            </a>
+          </span>
+        ))} before publication. Our editorial workflow audits source URLs, payment-system mappings, and data vintage on every release cycle.
       </p>
+      {showDisclaimer && (
+        <p className="text-xs text-slate-600 leading-relaxed mb-3 italic">
+          {REVIEWER_DISCLAIMER}
+        </p>
+      )}
       <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-        {reviewedAt && (
+        {resolvedReviewedAt && (
           <>
-            <span>Last verified: <time dateTime={reviewedAt}>{reviewedAt}</time></span>
+            <span>Last reviewed: <time dateTime={resolvedReviewedAt}>{resolvedReviewedAt}</time></span>
             <span className="text-slate-300">·</span>
           </>
         )}
-        <span>Data vintage: {dataVintage}</span>
+        <span>Data vintage: {resolvedDataVintage}</span>
         <span className="text-slate-300">·</span>
         <a href="https://datapeekfacts.com/editorial-policy/" className="underline underline-offset-2 hover:text-slate-900" rel="noopener">Editorial policy</a>
         <span className="text-slate-300">·</span>

@@ -127,9 +127,10 @@ export function OutOfPocketEstimator({ procedureName, nationalAvgCost }: Props) 
         </div>
 
         <p className="text-xs text-slate-400 mt-4">
-          Estimates based on national average cost of {fmt(nationalAvgCost)} for {procedureName}.
-          Actual costs vary by provider, plan, and location. Medicare figures assume Original Medicare
-          Part B. Not financial or medical advice.
+          Reference estimates anchored to the CMS national average of {fmt(nationalAvgCost)} for {procedureName}.
+          Actual Medicare cost-share varies by provider assignment, Medigap plan letter, Medicare Advantage
+          plan, and state. Figures assume Original Medicare Part B; for personalized coverage, work with a
+          CMS State Health Insurance Assistance Program (SHIP) counselor or your Medigap and Part D carrier.
         </p>
       </div>
     </section>
